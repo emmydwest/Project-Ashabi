@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@/components/icons";
+import { AccountNav } from "@/components/auth/account-nav";
 export function Header() {
   return (
     <header className="header">
@@ -22,14 +23,7 @@ export function Header() {
         <Icon name="search" />
         <span>Find your next story</span>
       </Link>
-      <div className="auth-actions" aria-label="Account actions">
-        <Link href="/signin" className="auth-signin">
-          Sign in
-        </Link>
-        <Link href="/signup" className="auth-signup">
-          Sign up
-        </Link>
-      </div>
+      <AccountNav />
     </header>
   );
 }
