@@ -30,12 +30,14 @@ export function Header() {
 export function Footer() {
   return (
     <footer className="footer">
-      <Link className="wordmark" href="/">
-        ASHABI
-      </Link>
-      <p>Stories today. Iconic worlds tomorrow.</p>
-      <Link href="/about">About Ashabi</Link>
-      <span>Concept preview · Sample stories</span>
+      <div className="footer-brand">
+        <Link className="wordmark" href="/">ASHABI</Link>
+        <p>A home for African stories, unforgettable characters, and worlds without borders.</p>
+      </div>
+      <div className="footer-links"><strong>Explore</strong><Link href="/discover">Discover</Link><Link href="/creators">Creators</Link><Link href="/about">Our story</Link></div>
+      <div className="footer-links"><strong>Your Ashabi</strong><Link href="/home">Reader home</Link><Link href="/profile">Profile</Link><Link href="/onboarding">Preferences</Link></div>
+      <div className="footer-statement"><span>Different stories.</span><span>Same human dreams.</span></div>
+      <div className="footer-bottom"><span>© 2026 Ashabi</span><span>Stories today. Iconic worlds tomorrow.</span></div>
     </footer>
   );
 }
