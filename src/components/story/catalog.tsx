@@ -60,12 +60,7 @@ export function Catalog({
     : "TRENDING";
 
   useEffect(() => {
-    setSearchInput(urlQuery);
-  }, [urlQuery]);
-
-  useEffect(() => {
     if (validCategory === "ORIGINALS") {
-      setLoading(false);
       return;
     }
 
@@ -152,10 +147,11 @@ export function Catalog({
             Search Manhwa, Manga, Anime, or Genres
           </label>
           <input
+            key={urlQuery}
             id="story-search"
             name="q"
             type="search"
-            value={searchInput}
+            defaultValue={urlQuery}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search Manhwa, Manga, Anime, creators, or genres (e.g. Solo Leveling, Sci-Fi, Fantasy)…"
             maxLength={150}
