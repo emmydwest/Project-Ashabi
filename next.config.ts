@@ -12,10 +12,16 @@ const config: NextConfig = {
         protocol: "https",
         hostname: "img.anili.st",
       },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+      },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+      },
     ],
   },
 };
 
 export default config;
-
-

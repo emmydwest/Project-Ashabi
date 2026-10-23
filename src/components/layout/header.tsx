@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Icon } from "@/components/icons";
-import { AccountNav } from "@/components/auth/account-nav";
+import { HeaderSearch } from "@/components/layout/header-search";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 
 export function Header() {
@@ -18,15 +17,7 @@ export function Header() {
         <Link href="/creators">Creators</Link>
         <Link href="/about">Our story</Link>
       </nav>
-      <Link
-        href="/discover"
-        className="header-search"
-        aria-label="Search stories"
-      >
-        <Icon name="search" />
-        <span>Search stories, creators, genres…</span>
-      </Link>
-      <AccountNav />
+      <HeaderSearch />
     </header>
   );
 }
@@ -63,7 +54,9 @@ export function Footer() {
           <span>Same human dreams.</span>
         </div>
         <div className="footer-bottom">
-          <span>© 2026 Project Ashabi · All published MVP stories are free to read</span>
+          <span>
+            © 2026 Project Ashabi · All published MVP stories are free to read
+          </span>
           <span>Nigeria · Africa · Global</span>
         </div>
       </footer>

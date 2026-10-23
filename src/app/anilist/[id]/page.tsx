@@ -55,7 +55,10 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           Home
         </Link>
         <span>/</span>
-        <Link href="/#anilist-hub-heading" className="hover:text-[var(--gold-bright)]">
+        <Link
+          href="/#anilist-hub-heading"
+          className="hover:text-[var(--gold-bright)]"
+        >
           Global {media.category} Chart
         </Link>
         <span>/</span>
@@ -119,10 +122,14 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                   {media.episodes} Episodes
                 </span>
               ) : null}
-              {media.seasonYear ? (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-[var(--text-muted)]">
-                  Released {media.seasonYear}
-                </span>
+              {media.trailer ? (
+                <a
+                  href="#series-trailer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)] border border-[var(--border-gold)]"
+                >
+                  <Icon name="play" size={12} />
+                  <span>Trailer Below</span>
+                </a>
               ) : null}
             </div>
 
@@ -156,25 +163,32 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               {media.description}
             </p>
 
-            {/* Genres */}
+            {/* Genres (Link to Discover with Genre Filter) */}
             <div className="flex flex-wrap items-center gap-2">
               {media.genres.map((genre) => (
-                <span
+                <Link
                   key={genre}
-                  className="px-3 py-1 rounded-full text-xs font-semibold bg-white/[0.06] border border-white/10 text-[var(--ivory)]"
+                  href={`/discover?genre=${encodeURIComponent(genre)}`}
+                  className="px-3 py-1 rounded-full text-xs font-semibold bg-white/[0.06] border border-white/10 text-[var(--ivory)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] transition-all"
                 >
                   {genre}
-                </span>
+                </Link>
               ))}
             </div>
 
             {/* Primary Actions */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              {media.trailer ? (
+                <a href="#series-trailer" className="button primary">
+                  <Icon name="play" size={17} />
+                  <span>Watch Official Trailer</span>
+                </a>
+              ) : null}
               <a
                 href={media.siteUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="button primary"
+                className={media.trailer ? "button secondary" : "button primary"}
               >
                 <Icon name="globe" size={17} />
                 <span>Open Official AniList Page</span>
@@ -187,6 +201,46 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      {/* Official Video Trailer Section */}
+      {media.trailer ? (
+        <section
+          id="series-trailer"
+          aria-labelledby="trailer-heading"
+          className="rounded-[26px] border border-[rgba(245,189,67,0.34)] bg-gradient-to-b from-[#0b131b] to-[#06090d] p-6 sm:p-8 space-y-5 shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="eyebrow mb-1">Official Promotional Video</p>
+              <h2
+                id="trailer-heading"
+                className="text-2xl sm:text-3xl font-extrabold m-0"
+              >
+                {media.title} — Official Trailer
+              </h2>
+            </div>
+            <a
+              href={media.trailer.watchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="button secondary text-xs"
+            >
+              <Icon name="external" size={14} />
+              <span>Open on {media.trailer.site}</span>
+            </a>
+          </div>
+
+          <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-[20px] overflow-hidden border border-[var(--border-gold)] bg-black shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+            <iframe
+              src={media.trailer.embedUrl}
+              title={`${media.title} Official Trailer`}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Official Reading & Streaming Platforms */}
       {officialLinks.length > 0 ? (

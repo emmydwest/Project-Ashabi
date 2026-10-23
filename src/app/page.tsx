@@ -4,7 +4,7 @@ import { Icon } from "@/components/icons";
 import { HomeComicStage } from "@/components/story/home-comic-stage";
 import { AniListHub } from "@/components/story/anilist-hub";
 import { AshabiPreviewNotice } from "@/components/layout/ashabi-preview-notice";
-import { getAniListHomeFeed } from "@/lib/anilist";
+import { ANILIST_GENRES, getAniListHomeFeed } from "@/lib/anilist";
 import { creators as ashabiCreators, getPublicStories } from "@/lib/stories";
 
 export default async function Home() {
@@ -25,23 +25,14 @@ export default async function Home() {
     ...aniListFeed.anime.slice(0, 2),
   ].slice(0, 5);
 
-  // Extract unique genres from live AniList feed
-  const liveGenres = Array.from(
-    new Set(
-      [
-        ...aniListFeed.manhwa,
-        ...aniListFeed.manga,
-        ...aniListFeed.anime,
-      ].flatMap((m) => m.genres),
-    ),
-  ).slice(0, 8);
+  const liveGenres = ANILIST_GENRES.filter((g) => g !== "All");
 
   return (
     <main
       id="main"
-      className="max-w-[1480px] mx-auto px-4 sm:px-8 lg:px-12 pt-5 pb-20 space-y-12"
+      className="max-w-[1480px] mx-auto px-4 sm:px-8 lg:px-12 pt-4 pb-20 space-y-10"
     >
-      {/* 0. African Comic Platform Welcome Modal & Persistent Notice Bar */}
+      {/* 0. Compact African Comic Platform Brief Bar & Floating Info Card */}
       <AshabiPreviewNotice />
 
       {/* 1. Interactive Spotlight Carousel (Populated by AniList Top Manhwa, Manga & Anime) */}
@@ -108,10 +99,10 @@ export default async function Home() {
                 New Chapter &amp; Episode Drops
               </h2>
             </div>
-            <a href="#anilist-hub-heading" className="text-link">
-              <span>Browse full charts</span>
+            <Link href="/discover" className="text-link">
+              <span>Search &amp; filter all series</span>
               <Icon name="arrow" size={16} />
-            </a>
+            </Link>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -121,7 +112,6 @@ export default async function Home() {
                 href={`/anilist/${item.id}`}
                 className="group relative rounded-[20px] border border-[var(--border)] bg-[var(--bg-2)] p-3.5 flex gap-4 items-center transition-all hover:border-[var(--border-gold)] hover:-translate-y-0.5 hover:bg-[var(--bg-3)]"
               >
-                {/* Cover Thumbnail */}
                 <div className="relative w-24 h-34 rounded-[14px] overflow-hidden shrink-0 border border-white/10">
                   <Image
                     src={item.coverImage}
@@ -133,14 +123,17 @@ export default async function Home() {
                   <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-[var(--gold)] text-[#140c02]">
                     {item.category}
                   </span>
-                  {idx < 4 ? (
+                  {item.trailer ? (
+                    <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-black/85 text-[var(--gold-bright)] border border-[var(--border-gold)]">
+                      Trailer
+                    </span>
+                  ) : idx < 4 ? (
                     <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-[#48c78e] text-[#051b10]">
                       UP
                     </span>
                   ) : null}
                 </div>
 
-                {/* Metadata */}
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--gold-bright)] truncate">
@@ -206,12 +199,12 @@ export default async function Home() {
                 </p>
               </div>
             </div>
-            <a
-              href="#anilist-hub-heading"
+            <Link
+              href="/discover?sort=POPULARITY"
               className="text-xs font-bold text-[var(--gold-bright)] hover:underline"
             >
-              Top 30
-            </a>
+              See All
+            </Link>
           </div>
 
           <ol className="space-y-2.5 m-0 p-0 list-none">
@@ -293,7 +286,7 @@ export default async function Home() {
           </div>
           <p className="text-xs sm:text-sm text-[var(--text-muted)] m-0">
             Click any day’s featured series to open its full hub, character
-            roster, and official platform links.
+            roster, trailer, and official platform links.
           </p>
         </div>
 
@@ -339,7 +332,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 5. Interactive Global Manhwa, Manga & Anime Hub (Tabs + Genre Filter + 30 Titles) */}
+      {/* 5. Interactive Global Manhwa, Manga & Anime Hub (Live Search + Genre Filter + Trailers) */}
       <AniListHub feed={aniListFeed} />
 
       {/* 6. Top Creators & Illustrators Strip (Populated from AniList Staff) */}
@@ -425,7 +418,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 7. Vertical Webtoon & Manhwa Panel Showcase + Binge Shelf (Propagated with AniList) */}
+      {/* 7. Vertical Webtoon & Manhwa Panel Showcase + Binge Shelf */}
       <section
         aria-labelledby="panel-peek-heading"
         className="rounded-[28px] border border-[rgba(245,189,67,0.3)] bg-gradient-to-b from-[#0b1218] to-[#05070a] p-6 sm:p-10 space-y-8"
@@ -510,10 +503,10 @@ export default async function Home() {
             <h3 className="text-lg font-extrabold m-0">
               Must-Binge Manga &amp; Anime Classics (AniList Top Rated)
             </h3>
-            <a href="#anilist-hub-heading" className="text-link text-xs">
-              <span>Full 30-Series Chart</span>
+            <Link href="/discover" className="text-link text-xs">
+              <span>Full Discovery Catalog</span>
               <Icon name="arrow" size={14} />
-            </a>
+            </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
             {bingeShelf.map((item) => (

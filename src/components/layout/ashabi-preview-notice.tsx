@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 
-const DISMISSED_KEY = "ashabi:preview-notice-ack:v1";
+const DISMISSED_KEY = "ashabi:preview-notice-ack:v2";
 
 export function AshabiPreviewNotice() {
   const [isOpen, setIsOpen] = useState<boolean>(() => {
@@ -21,177 +21,129 @@ export function AshabiPreviewNotice() {
     try {
       window.sessionStorage.setItem(DISMISSED_KEY, "1");
     } catch {
-      // Ignore storage errors in restricted browsing modes
+      // Ignore storage errors
     }
   }
 
   return (
     <>
-      {/* Persistent Top African Heritage & API Preview Bar */}
+      {/* Sleek Compact Single-Row Top Bar (Does not crowd the Hero) */}
       <div
         role="region"
-        aria-label="Project Ashabi platform notice"
-        className="rounded-[20px] border border-[rgba(245,189,67,0.38)] bg-gradient-to-r from-[#171105] via-[#0c131a] to-[#171105] px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+        aria-label="Project Ashabi platform brief"
+        className="rounded-full border border-[rgba(245,189,67,0.32)] bg-[#0b1117]/90 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs"
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="w-8 h-8 rounded-full bg-[rgba(245,189,67,0.18)] border border-[var(--border-gold)] grid place-items-center text-[var(--gold-bright)] shrink-0">
-            <Icon name="sparkles" size={16} />
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[var(--gold)] text-[#140c02] shrink-0">
+            African Comic Platform
           </span>
-          <p className="text-xs sm:text-sm text-[var(--ivory)] m-0 leading-snug">
-            <strong className="text-[var(--gold-bright)] font-extrabold">
-              Project Ashabi — African Comic &amp; Storytelling Platform:
-            </strong>{" "}
-            Built for African comics, graphic novels, and creators. Currently
-            populated with live{" "}
+          <span className="text-[var(--ivory)] truncate">
+            <strong className="text-[var(--gold-bright)]">Project Ashabi</strong>{" "}
+            is built for African comics &amp; folklore — currently previewing live{" "}
             <strong className="text-white">AniList Manhwa, Manga &amp; Anime</strong>{" "}
-            data to demonstrate the platform experience while our African catalog
-            prepares for launch.
-          </p>
+            charts &amp; trailers while our African originals finalize for launch.
+          </span>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="px-3 py-1.5 rounded-full text-xs font-bold border border-[var(--border-gold)] bg-[rgba(245,189,67,0.14)] text-[var(--gold-bright)] hover:bg-[rgba(245,189,67,0.25)] transition-all cursor-pointer"
-          >
-            Read Platform Note
-          </button>
-          <Link
-            href="/about"
-            className="px-3 py-1.5 rounded-full text-xs font-semibold border border-white/15 bg-white/[0.04] text-[var(--ivory)] hover:border-[var(--border-gold)]"
-          >
-            Our African Mission
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border border-[var(--border-gold)] bg-[rgba(245,189,67,0.14)] text-[var(--gold-bright)] hover:bg-[rgba(245,189,67,0.25)] transition-all cursor-pointer shrink-0"
+        >
+          <Icon name="sparkles" size={12} />
+          <span>{isOpen ? "Hide Brief" : "Platform Brief"}</span>
+        </button>
       </div>
 
-      {/* Full-Screen Pre-Load / Welcome Modal */}
+      {/* Compact, Well-Detailed Floating Card (Bottom-Right Corner — Never Blocks the Whole Page) */}
       {isOpen ? (
-        <div
+        <aside
           role="dialog"
-          aria-modal="true"
+          aria-modal="false"
           aria-labelledby="ashabi-welcome-title"
-          className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-[fadeIn_280ms_ease-out]"
+          className="fixed bottom-5 right-5 z-[110] w-[calc(100vw-2.5rem)] max-w-[430px] rounded-[22px] border border-[rgba(245,189,67,0.5)] bg-gradient-to-b from-[#101822]/98 via-[#090e14]/98 to-[#05070a]/98 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.88)] backdrop-blur-md space-y-3.5"
         >
-          <div className="relative w-full max-w-2xl rounded-[28px] border-2 border-[rgba(245,189,67,0.45)] bg-gradient-to-b from-[#101822] via-[#090e14] to-[#05070a] p-6 sm:p-9 shadow-[0_32px_90px_rgba(0,0,0,0.9)] space-y-6 overflow-hidden">
-            {/* Decorative Gold Glow */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-24 -right-24 w-64 h-64 rounded-full bg-[radial-gradient(circle,rgba(245,189,67,0.22),transparent_70%)]"
-            />
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-[var(--gold)] text-[#140c02]">
+              <Icon name="sparkles" size={12} />
+              <span>Project Ashabi · Live Preview Brief</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleDismiss}
+              aria-label="Dismiss platform brief"
+              className="w-7 h-7 rounded-full border border-white/15 bg-white/5 grid place-items-center text-[var(--text-muted)] hover:text-white hover:border-[var(--border-gold)] cursor-pointer"
+            >
+              <Icon name="close" size={14} />
+            </button>
+          </div>
 
-            <div className="flex items-start justify-between gap-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-widest bg-[var(--gold)] text-[#140c02]">
-                <Icon name="sparkles" size={14} />
-                <span>Welcome to Project Ashabi</span>
-              </div>
-              <button
-                type="button"
+          <div className="space-y-1.5">
+            <h2
+              id="ashabi-welcome-title"
+              className="font-serif text-xl font-bold text-[var(--text-strong)] leading-snug m-0"
+            >
+              Africa’s Digital Home for Comics, Webtoons &amp; Mythic Fiction
+            </h2>
+            <p className="text-xs text-[var(--text)] leading-relaxed m-0">
+              <strong className="text-[var(--gold-bright)]">Ashabi</strong> is an
+              African-themed digital publishing ecosystem created for{" "}
+              <strong className="text-[var(--ivory)]">
+                African comic creators, Afrofuturist illustrators, graphic
+                novelists, and folklore storytellers
+              </strong>{" "}
+              across Nigeria, Africa, and the diaspora.
+            </p>
+          </div>
+
+          <div className="rounded-[14px] border border-white/10 bg-black/50 p-3 space-y-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+            <div>
+              <strong className="text-[var(--gold-bright)] uppercase tracking-wider block text-[10px]">
+                1. Why AniList Data Is Propagated Right Now
+              </strong>
+              While our first wave of original African comic episodes undergoes
+              final studio lettering, this preview is connected to the live{" "}
+              <strong className="text-[var(--ivory)]">AniList GraphQL API</strong>{" "}
+              (Manhwa, Manga &amp; Anime) to demonstrate full-scale discovery,
+              genre filtering, search, and official trailers.
+            </div>
+            <div className="pt-1.5 border-t border-white/10">
+              <strong className="text-[var(--gold-bright)] uppercase tracking-wider block text-[10px]">
+                2. What You Can Explore &amp; Test
+              </strong>
+              Use the top <strong className="text-[var(--ivory)]">Search</strong>{" "}
+              bar, filter by genres (<em className="text-[var(--ivory)]">Sci-Fi, Fantasy, Action, Romance</em>),
+              watch embedded <strong className="text-[var(--ivory)]">Manhwa &amp; Anime Trailers</strong>,
+              or test our vertical comic reader.
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="px-4 py-2 rounded-full text-xs font-extrabold bg-[var(--gold)] text-[#140c02] hover:bg-[var(--gold-bright)] transition-all cursor-pointer"
+            >
+              Got It, Explore Hub
+            </button>
+            <div className="flex items-center gap-3 text-xs">
+              <Link
+                href="/read/neon-lagos/rain-on-the-third-mainland"
                 onClick={handleDismiss}
-                aria-label="Close welcome notice"
-                className="w-9 h-9 rounded-full border border-white/15 bg-white/5 grid place-items-center text-[var(--text-muted)] hover:text-white hover:border-[var(--border-gold)] cursor-pointer"
+                className="font-bold text-[var(--gold-bright)] hover:underline"
               >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <h2
-                id="ashabi-welcome-title"
-                className="font-serif text-3xl sm:text-4xl font-bold text-[var(--text-strong)] leading-tight m-0"
-              >
-                An African-Themed Home for Comics, Graphic Novels &amp; Mythic
-                Fiction
-              </h2>
-              <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed m-0">
-                <strong className="text-[var(--gold-bright)]">
-                  Project Ashabi
-                </strong>{" "}
-                is crafted from the ground up as a premier digital publishing
-                platform for{" "}
-                <strong className="text-[var(--ivory)]">
-                  African comics, Afrofuturist webtoons, graphic novels, and
-                  serialized African storytelling
-                </strong>
-                .
-              </p>
-            </div>
-
-            <div className="rounded-[20px] border border-[rgba(245,189,67,0.28)] bg-black/45 p-4 sm:p-5 space-y-2.5">
-              <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[var(--gold-bright)]">
-                <Icon name="flame" size={15} />
-                <span>Why You See Global Manhwa, Manga &amp; Anime Today</span>
-              </div>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed m-0">
-                To showcase Ashabi’s comic-first layout, rankings, release
-                calendars, and reader flows before our full roster of original
-                African series goes live, this preview is{" "}
-                <strong className="text-[var(--ivory)]">
-                  temporarily propagated with real-time Manhwa, Manga, and Anime
-                  data via the AniList API
-                </strong>
-                . You can also test our built-in vertical comic reader with our
-                African launch originals at any time.
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-3 text-xs">
-              <div className="rounded-[14px] border border-white/10 bg-white/[0.03] p-3">
-                <span className="font-extrabold text-[var(--gold-bright)] block mb-0.5">
-                  01 · African Identity
-                </span>
-                <span className="text-[var(--text-muted)]">
-                  Designed for African creators, folklore, and futuristic worlds.
-                </span>
-              </div>
-              <div className="rounded-[14px] border border-white/10 bg-white/[0.03] p-3">
-                <span className="font-extrabold text-[var(--gold-bright)] block mb-0.5">
-                  02 · Live API Demo
-                </span>
-                <span className="text-[var(--text-muted)]">
-                  Populated with live AniList charts to preview full catalog scale.
-                </span>
-              </div>
-              <div className="rounded-[14px] border border-white/10 bg-white/[0.03] p-3">
-                <span className="font-extrabold text-[var(--gold-bright)] block mb-0.5">
-                  03 · 100% Free MVP
-                </span>
-                <span className="text-[var(--text-muted)]">
-                  Zero paywalls—explore series hubs and vertical comic panels freely.
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleDismiss}
-                  className="button primary cursor-pointer"
-                >
-                  <Icon name="play" size={17} />
-                  <span>Enter Live Comic Hub</span>
-                </button>
-                <Link
-                  href="/discover"
-                  onClick={handleDismiss}
-                  className="button secondary"
-                >
-                  <Icon name="book" size={16} />
-                  <span>View African Launch Originals</span>
-                </Link>
-              </div>
+                African Reader Demo
+              </Link>
               <Link
                 href="/about"
                 onClick={handleDismiss}
-                className="text-xs font-bold text-[var(--gold-bright)] hover:underline"
+                className="text-[var(--text-muted)] hover:text-white"
               >
-                Learn more about Ashabi →
+                Our Mission →
               </Link>
             </div>
           </div>
-        </div>
+        </aside>
       ) : null}
     </>
   );

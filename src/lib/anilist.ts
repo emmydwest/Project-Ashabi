@@ -1,5 +1,27 @@
 export type AniListCategory = "MANHWA" | "MANGA" | "ANIME";
 
+export const ANILIST_GENRES = [
+  "All",
+  "Action",
+  "Adventure",
+  "Fantasy",
+  "Sci-Fi",
+  "Romance",
+  "Drama",
+  "Mystery",
+  "Supernatural",
+  "Comedy",
+  "Thriller",
+] as const;
+
+export interface AniListTrailer {
+  id: string;
+  site: string;
+  thumbnail?: string | null;
+  embedUrl: string;
+  watchUrl: string;
+}
+
 export interface AniListCreator {
   id: number;
   name: string;
@@ -33,6 +55,7 @@ export interface AniListMedia {
   siteUrl: string;
   authorName?: string;
   authorAvatar?: string | null;
+  trailer?: AniListTrailer | null;
   externalLinks?: {
     id: number;
     site: string;
@@ -94,6 +117,33 @@ function resolveCategory(
   return "MANGA";
 }
 
+function normalizeTrailer(
+  raw?: { id?: string | null; site?: string | null; thumbnail?: string | null } | null,
+): AniListTrailer | null {
+  if (!raw?.id || !raw?.site) return null;
+  const site = raw.site.toLowerCase();
+  if (site === "youtube") {
+    return {
+      id: raw.id,
+      site: "YouTube",
+      thumbnail:
+        raw.thumbnail || `https://i.ytimg.com/vi/${raw.id}/hqdefault.jpg`,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${raw.id}?rel=0`,
+      watchUrl: `https://www.youtube.com/watch?v=${raw.id}`,
+    };
+  }
+  if (site === "dailymotion") {
+    return {
+      id: raw.id,
+      site: "Dailymotion",
+      thumbnail: raw.thumbnail ?? null,
+      embedUrl: `https://www.dailymotion.com/embed/video/${raw.id}`,
+      watchUrl: `https://www.dailymotion.com/video/${raw.id}`,
+    };
+  }
+  return null;
+}
+
 interface RawAniListNode {
   id: number;
   type?: string | null;
@@ -120,6 +170,11 @@ interface RawAniListNode {
     english?: string | null;
     romaji?: string | null;
     native?: string | null;
+  } | null;
+  trailer?: {
+    id?: string | null;
+    site?: string | null;
+    thumbnail?: string | null;
   } | null;
   staff?: {
     edges?: (
@@ -209,7 +264,7 @@ function normalizeNode(
       "/images/story-neon-lagos.webp",
     bannerImage: node.bannerImage ?? null,
     accentColor: node.coverImage?.color ?? "#f5bd43",
-    genres: (node.genres ?? []).filter((g): g is string => Boolean(g)).slice(0, 4),
+    genres: (node.genres ?? []).filter((g): g is string => Boolean(g)).slice(0, 5),
     averageScore: node.averageScore ?? null,
     popularity: node.popularity ?? null,
     status: (node.status ?? "RELEASING").replace(/_/g, " "),
@@ -222,6 +277,7 @@ function normalizeNode(
     siteUrl: node.siteUrl ?? `https://anilist.co/manga/${node.id}`,
     authorName,
     authorAvatar: authorEdge?.node?.image?.large ?? null,
+    trailer: normalizeTrailer(node.trailer),
     externalLinks: (node.externalLinks ?? [])
       .filter((link): link is NonNullable<typeof link> =>
         Boolean(link && link.site && link.url),
@@ -286,6 +342,11 @@ const MEDIA_FIELDS = `
     romaji
     native
   }
+  trailer {
+    id
+    site
+    thumbnail
+  }
   staff(perPage: 2) {
     edges {
       role
@@ -301,17 +362,17 @@ const MEDIA_FIELDS = `
 
 const HOME_FEED_QUERY = `
   query AshabiHomeAniListFeed {
-    manhwa: Page(page: 1, perPage: 10) {
+    manhwa: Page(page: 1, perPage: 16) {
       media(type: MANGA, countryOfOrigin: "KR", sort: [TRENDING_DESC, POPULARITY_DESC], isAdult: false) {
         ${MEDIA_FIELDS}
       }
     }
-    manga: Page(page: 1, perPage: 10) {
+    manga: Page(page: 1, perPage: 16) {
       media(type: MANGA, countryOfOrigin: "JP", sort: [TRENDING_DESC, POPULARITY_DESC], isAdult: false) {
         ${MEDIA_FIELDS}
       }
     }
-    anime: Page(page: 1, perPage: 10) {
+    anime: Page(page: 1, perPage: 16) {
       media(type: ANIME, sort: [TRENDING_DESC, POPULARITY_DESC], isAdult: false) {
         ${MEDIA_FIELDS}
       }
@@ -366,6 +427,30 @@ const MEDIA_DETAIL_QUERY = `
   }
 `;
 
+const CATALOG_SEARCH_QUERY = `
+  query AshabiAniListSearch(
+    $search: String
+    $type: MediaType
+    $countryOfOrigin: CountryCode
+    $genre: String
+    $sort: [MediaSort]
+    $perPage: Int
+  ) {
+    Page(page: 1, perPage: $perPage) {
+      media(
+        search: $search
+        type: $type
+        countryOfOrigin: $countryOfOrigin
+        genre: $genre
+        sort: $sort
+        isAdult: false
+      ) {
+        ${MEDIA_FIELDS}
+      }
+    }
+  }
+`;
+
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 function extractCreators(nodes: RawAniListNode[]): AniListCreator[] {
@@ -378,11 +463,7 @@ function extractCreators(nodes: RawAniListNode[]): AniListCreator[] {
       node.title?.english || node.title?.romaji || node.title?.native || "Series";
     for (const edge of node.staff?.edges ?? []) {
       const staffNode = edge?.node;
-      if (
-        !staffNode?.id ||
-        !staffNode.name?.full ||
-        seen.has(staffNode.id)
-      ) {
+      if (!staffNode?.id || !staffNode.name?.full || seen.has(staffNode.id)) {
         continue;
       }
       seen.add(staffNode.id);
@@ -414,24 +495,21 @@ function buildHomeFeed(
   topCreators: AniListCreator[],
   source: "live" | "fallback",
 ): AniListHomeFeed {
-  // 1. Spotlight: top 6 with wide banners mixing Manhwa, Manga, and Anime
   const combinedForSpotlight = [
     ...manhwa.slice(0, 3),
     ...manga.slice(0, 2),
     ...anime.slice(0, 2),
   ];
   const spotlight = combinedForSpotlight
-    .sort((a, b) => (b.BannerScore ?? (b.bannerImage ? 1 : 0)) - (a.BannerScore ?? (a.bannerImage ? 1 : 0)))
+    .sort((a, b) => (b.bannerImage ? 1 : 0) - (a.bannerImage ? 1 : 0))
     .slice(0, 6);
 
-  // 2. Recent Drops: 8 releasing Manhwa, Manga & Airing Anime
   const recentDrops = [
     ...manhwa.filter((m) => m.status.includes("RELEASING")).slice(0, 4),
     ...manga.filter((m) => m.status.includes("RELEASING")).slice(0, 2),
     ...anime.slice(0, 2),
   ].slice(0, 8);
 
-  // 3. Leaderboard: top 8 most popular
   const leaderboard =
     leaderboardRaw.length > 0
       ? leaderboardRaw.slice(0, 8)
@@ -439,8 +517,11 @@ function buildHomeFeed(
           .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
           .slice(0, 8);
 
-  // 4. Weekly Schedule: 7 days populated from releasing Manhwa/Manga/Anime
-  const schedulePool = [...manhwa.slice(0, 4), ...manga.slice(0, 2), ...anime.slice(0, 2)];
+  const schedulePool = [
+    ...manhwa.slice(0, 4),
+    ...manga.slice(0, 2),
+    ...anime.slice(0, 2),
+  ];
   const weeklySchedule = DAYS.map((day, idx) => {
     const media = schedulePool[idx % schedulePool.length] ?? manhwa[0];
     return {
@@ -460,19 +541,15 @@ function buildHomeFeed(
     manhwa,
     manga,
     anime,
-    recentDrops: recentDrops.length >= 4 ? recentDrops : [...manhwa.slice(0, 4), ...manga.slice(0, 4)],
+    recentDrops:
+      recentDrops.length >= 4
+        ? recentDrops
+        : [...manhwa.slice(0, 4), ...manga.slice(0, 4)],
     leaderboard,
     weeklySchedule,
     topCreators,
     source,
   };
-}
-
-// Helper type augmentation avoided by simple sort
-declare module "./anilist" {
-  interface AniListMedia {
-    BannerScore?: number;
-  }
 }
 
 export async function getAniListHomeFeed(): Promise<AniListHomeFeed> {
@@ -528,6 +605,88 @@ export async function getAniListHomeFeed(): Promise<AniListHomeFeed> {
     );
   } catch {
     return FALLBACK_HOME_FEED;
+  }
+}
+
+export async function searchAniListCatalog(params: {
+  query?: string;
+  category?: "ALL" | AniListCategory;
+  genre?: string;
+  sort?: "TRENDING" | "POPULARITY" | "SCORE";
+  perPage?: number;
+}): Promise<AniListMedia[]> {
+  const cleanQuery = params.query?.trim() || undefined;
+  const cleanGenre =
+    params.genre && params.genre !== "All" ? params.genre : undefined;
+  const category = params.category ?? "ALL";
+
+  let type: "MANGA" | "ANIME" | undefined;
+  let countryOfOrigin: "KR" | "JP" | undefined;
+
+  if (category === "MANHWA") {
+    type = "MANGA";
+    countryOfOrigin = "KR";
+  } else if (category === "MANGA") {
+    type = "MANGA";
+    countryOfOrigin = "JP";
+  } else if (category === "ANIME") {
+    type = "ANIME";
+  }
+
+  let sort: string[] = ["TRENDING_DESC", "POPULARITY_DESC"];
+  if (params.sort === "POPULARITY") {
+    sort = ["POPULARITY_DESC", "SCORE_DESC"];
+  } else if (params.sort === "SCORE") {
+    sort = ["SCORE_DESC", "POPULARITY_DESC"];
+  } else if (cleanQuery) {
+    sort = ["SEARCH_MATCH", "POPULARITY_DESC"];
+  }
+
+  try {
+    const response = await fetch(ANILIST_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        query: CATALOG_SEARCH_QUERY,
+        variables: {
+          search: cleanQuery,
+          type,
+          countryOfOrigin,
+          genre: cleanGenre,
+          sort,
+          perPage: params.perPage ?? 20,
+        },
+      }),
+      next: { revalidate: 900 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`AniList search HTTP ${response.status}`);
+    }
+
+    const json = await response.json();
+    const rawList: RawAniListNode[] = json?.data?.Page?.media ?? [];
+    return rawList.map((node) => normalizeNode(node));
+  } catch {
+    const allFallback = [
+      ...FALLBACK_HOME_FEED.manhwa,
+      ...FALLBACK_HOME_FEED.manga,
+      ...FALLBACK_HOME_FEED.anime,
+    ];
+    return allFallback.filter((item) => {
+      if (category !== "ALL" && item.category !== category) return false;
+      if (cleanGenre && !item.genres.includes(cleanGenre)) return false;
+      if (
+        cleanQuery &&
+        !item.title.toLowerCase().includes(cleanQuery.toLowerCase())
+      ) {
+        return false;
+      }
+      return true;
+    });
   }
 }
 
@@ -587,6 +746,13 @@ const FALLBACK_MANHWA: AniListMedia[] = [
     seasonYear: 2018,
     siteUrl: "https://anilist.co/manga/105398",
     authorName: "Chugong · DUBU",
+    trailer: {
+      id: "I6JIwjWOhnQ",
+      site: "YouTube",
+      thumbnail: "https://i.ytimg.com/vi/I6JIwjWOhnQ/hqdefault.jpg",
+      embedUrl: "https://www.youtube-nocookie.com/embed/I6JIwjWOhnQ?rel=0",
+      watchUrl: "https://www.youtube.com/watch?v=I6JIwjWOhnQ",
+    },
   },
   {
     id: 119257,
@@ -598,7 +764,7 @@ const FALLBACK_MANHWA: AniListMedia[] = [
     coverImage: "/images/story-between-two-suns.webp",
     bannerImage: "/images/hero-ashabi-dawn.webp",
     accentColor: "#f5bd43",
-    genres: ["Action", "Fantasy", "Adventure"],
+    genres: ["Action", "Fantasy", "Adventure", "Sci-Fi"],
     averageScore: 88,
     popularity: 185000,
     status: "RELEASING",
@@ -656,6 +822,13 @@ const FALLBACK_ANIME: AniListMedia[] = [
     seasonYear: 2024,
     siteUrl: "https://anilist.co/anime/151807",
     authorName: "A-1 Pictures",
+    trailer: {
+      id: "bssSj4cKsrI",
+      site: "YouTube",
+      thumbnail: "https://i.ytimg.com/vi/bssSj4cKsrI/hqdefault.jpg",
+      embedUrl: "https://www.youtube-nocookie.com/embed/bssSj4cKsrI?rel=0",
+      watchUrl: "https://www.youtube.com/watch?v=bssSj4cKsrI",
+    },
   },
 ];
 

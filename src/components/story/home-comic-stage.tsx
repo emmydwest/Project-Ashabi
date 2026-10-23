@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import type { AniListMedia } from "@/lib/anilist";
+import type { AniListMedia, AniListTrailer } from "@/lib/anilist";
 import type { Story } from "@/lib/stories";
 import {
   loadReaderState,
@@ -25,6 +25,10 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [activeTrailer, setActiveTrailer] = useState<{
+    title: string;
+    trailer: AniListTrailer;
+  } | null>(null);
   const [followedMap, setFollowedMap] = useState<Record<string, boolean>>(() => {
     const st = loadReaderState();
     return Object.fromEntries(st.followedStories.map((s) => [s, true]));
@@ -75,7 +79,7 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
   }
 
   useEffect(() => {
-    if (paused || spotlightItems.length <= 1) return;
+    if (paused || activeTrailer || spotlightItems.length <= 1) return;
     const timer = window.setInterval(() => {
       setIsTransitioning(true);
       window.setTimeout(() => {
@@ -84,7 +88,7 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
       }, 180);
     }, SLIDE_DURATION_MS);
     return () => window.clearInterval(timer);
-  }, [paused, spotlightItems.length]);
+  }, [paused, activeTrailer, spotlightItems.length]);
 
   const active = spotlightItems[activeIndex] ?? spotlightItems[0];
   const storageKey = `anilist-${active?.id ?? 0}`;
@@ -167,9 +171,10 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                     ? `${active.episodes} Episodes`
                     : active.status}
               </span>
-              {active.popularity ? (
-                <span className="text-xs text-[var(--ivory)] opacity-85 font-semibold">
-                  {Math.round(active.popularity / 1000)}k Readers
+              {active.trailer ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)] border border-[var(--border-gold)]">
+                  <Icon name="play" size={11} />
+                  <span>Trailer</span>
                 </span>
               ) : null}
             </div>
@@ -197,12 +202,13 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
 
             <div className="flex flex-wrap gap-2">
               {active.genres.map((g) => (
-                <span
+                <Link
                   key={g}
-                  className="px-3 py-1 rounded-full text-xs font-semibold border border-white/15 bg-white/[0.06] text-[var(--text-strong)]"
+                  href={`/discover?genre=${encodeURIComponent(g)}`}
+                  className="px-3 py-1 rounded-full text-xs font-semibold border border-white/15 bg-white/[0.06] text-[var(--text-strong)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] transition-all"
                 >
                   {g}
-                </span>
+                </Link>
               ))}
             </div>
 
@@ -227,6 +233,22 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                 <span>Open Series Hub &amp; Links</span>
               </Link>
 
+              {active.trailer ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveTrailer({
+                      title: active.title,
+                      trailer: active.trailer!,
+                    })
+                  }
+                  className="button secondary cursor-pointer"
+                >
+                  <Icon name="play" size={16} />
+                  <span>Watch Official Trailer</span>
+                </button>
+              ) : null}
+
               <a
                 href={active.siteUrl}
                 target="_blank"
@@ -234,7 +256,7 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                 className="button secondary"
               >
                 <Icon name="globe" size={16} />
-                <span>Official AniList</span>
+                <span>AniList</span>
               </a>
 
               <button
@@ -278,7 +300,6 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
           {/* Right: Comic Issue Cover Stack + Prev/Next Controls + Thumbnail Selector Strip */}
           <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col items-center gap-5">
             <div className="relative flex items-center gap-3 w-full justify-center">
-              {/* Prev Slide Button */}
               <button
                 type="button"
                 onClick={() => switchSlide(activeIndex - 1)}
@@ -288,7 +309,6 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                 <Icon name="arrow-left" size={16} />
               </button>
 
-              {/* Stacked Portrait Cover Card */}
               <Link
                 href={`/anilist/${active.id}`}
                 className={
@@ -332,7 +352,6 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                 </div>
               </Link>
 
-              {/* Next Slide Button */}
               <button
                 type="button"
                 onClick={() => switchSlide(activeIndex + 1)}
@@ -343,7 +362,6 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
               </button>
             </div>
 
-            {/* Thumbnail Selector Strip */}
             <div
               role="tablist"
               aria-label="Select spotlight series"
@@ -380,7 +398,6 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
           </div>
         </div>
 
-        {/* Bottom Progress Indicator Strip */}
         <div className="relative z-30 h-1 w-full bg-white/5 overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-bright)] transition-all duration-500 ease-out"
@@ -438,6 +455,50 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
             </Link>
           </div>
         </section>
+      ) : null}
+
+      {/* Embedded Trailer Lightbox Modal */}
+      {activeTrailer ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${activeTrailer.title} Official Trailer`}
+          className="fixed inset-0 z-[130] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setActiveTrailer(null)}
+        >
+          <div
+            className="w-full max-w-4xl rounded-[24px] border border-[var(--border-gold)] bg-[#070b10] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.95)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[var(--gold)] text-[#140c02]">
+                  Official Trailer
+                </span>
+                <h3 className="text-sm sm:text-base font-extrabold text-[var(--text-strong)] truncate m-0">
+                  {activeTrailer.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTrailer(null)}
+                aria-label="Close trailer"
+                className="w-8 h-8 rounded-full border border-white/15 bg-white/5 grid place-items-center text-[var(--ivory)] hover:border-[var(--border-gold)] cursor-pointer"
+              >
+                <Icon name="close" size={15} />
+              </button>
+            </div>
+            <div className="relative aspect-video w-full bg-black">
+              <iframe
+                src={activeTrailer.trailer.embedUrl}
+                title={`${activeTrailer.title} Trailer`}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
