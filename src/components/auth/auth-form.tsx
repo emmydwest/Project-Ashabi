@@ -3,25 +3,28 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AppleIcon, GoogleIcon } from "@/components/icons/brand-icons";
+import { GoogleIcon } from "@/components/icons/brand-icons";
+import { Icon } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
+import { signInSchema, signUpSchema } from "@/lib/validation";
 
 export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   const isSignUp = mode === "signup";
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   function callbackUrl() {
     return `${window.location.origin}/auth/callback`;
   }
 
-  async function handleSocial(provider: "google" | "apple") {
+  async function handleGoogle() {
     setPending(true);
     setNotice("");
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
-      provider,
+      provider: "google",
       options: { redirectTo: callbackUrl() },
     });
     if (error) {
@@ -35,18 +38,31 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     setPending(true);
     setNotice("");
     const data = new FormData(event.currentTarget);
-    const email = String(data.get("email") ?? "");
+    const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
-    const displayName = String(data.get("displayName") ?? "");
-    const supabase = createClient();
+    const displayName = String(data.get("displayName") ?? "").trim();
+    const termsAccepted = data.get("terms") === "on";
 
     if (isSignUp) {
-      const { data: result, error } = await supabase.auth.signUp({
+      const parsed = signUpSchema.safeParse({
+        displayName,
         email,
         password,
+        termsAccepted: termsAccepted ? true : false,
+      });
+      if (!parsed.success) {
+        setNotice(parsed.error.issues[0]?.message ?? "Please check the form.");
+        setPending(false);
+        return;
+      }
+
+      const supabase = createClient();
+      const { data: result, error } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
         options: {
           emailRedirectTo: callbackUrl(),
-          data: { display_name: displayName },
+          data: { display_name: parsed.data.displayName },
         },
       });
       if (error) {
@@ -57,13 +73,26 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
       if (result.session) {
         router.push("/onboarding");
       } else {
-        setNotice("Check your email to confirm your account, then continue to Ashabi.");
+        setNotice(
+          "Check your email to confirm your account, then continue to Ashabi.",
+        );
         setPending(false);
       }
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const parsed = signInSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setNotice(parsed.error.issues[0]?.message ?? "Please check your credentials.");
+      setPending(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
     if (error) {
       setNotice(error.message);
       setPending(false);
@@ -78,19 +107,12 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
       <div className="social-auth" aria-label="Social account options">
         <button
           type="button"
-          onClick={() => handleSocial("google")}
+          onClick={handleGoogle}
           disabled={pending}
+          className="col-span-full"
         >
           <GoogleIcon />
           <span>Continue with Google</span>
-        </button>
-        <button
-          type="button"
-          aria-label="Continue with Apple"
-          onClick={() => handleSocial("apple")}
-          disabled={pending}
-        >
-          <AppleIcon />
         </button>
       </div>
 
@@ -98,7 +120,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         <span>or continue with email</span>
       </div>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {isSignUp && (
           <div className="field-group">
             <label htmlFor="display-name">Display name</label>
@@ -127,21 +149,32 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             <label htmlFor="password">Password</label>
             {!isSignUp && <Link href="/forgot-password">Forgot password?</Link>}
           </div>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete={isSignUp ? "new-password" : "current-password"}
-            minLength={8}
-            placeholder={
-              isSignUp ? "At least 8 characters" : "Enter your password"
-            }
-            required
-          />
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              minLength={8}
+              placeholder={
+                isSignUp ? "At least 8 characters" : "Enter your password"
+              }
+              required
+              className="pr-11 w-full"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--gold-bright)] cursor-pointer p-1"
+            >
+              <Icon name={showPassword ? "eye-off" : "eye"} size={18} />
+            </button>
+          </div>
         </div>
         {isSignUp ? (
           <label className="check-row">
-            <input type="checkbox" required />
+            <input type="checkbox" name="terms" defaultChecked required />
             <span>
               I agree to the <Link href="/terms">Terms</Link> and{" "}
               <Link href="/privacy">Privacy Policy</Link>.
@@ -149,12 +182,20 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
           </label>
         ) : (
           <label className="check-row">
-            <input type="checkbox" name="remember" />
+            <input type="checkbox" name="remember" defaultChecked />
             <span>Keep me signed in</span>
           </label>
         )}
-        <button className="button primary auth-submit" type="submit" disabled={pending}>
-          {pending ? "Please wait…" : isSignUp ? "Create account" : "Sign in"}
+        <button
+          className="button primary auth-submit"
+          type="submit"
+          disabled={pending}
+        >
+          {pending
+            ? "Please wait…"
+            : isSignUp
+              ? "Create free account"
+              : "Sign in"}
         </button>
       </form>
 

@@ -1,3 +1,21 @@
 import type { NextConfig } from "next";
-const config: NextConfig = { output: "export", images: { unoptimized: true } };
+
+const config: NextConfig = {
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "s4.anilist.co",
+      },
+      {
+        protocol: "https",
+        hostname: "img.anili.st",
+      },
+    ],
+  },
+};
+
 export default config;
+
+

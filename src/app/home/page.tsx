@@ -1,8 +1,11 @@
 import { ReaderHome } from "@/components/reader/reader-home";
-import { AuthGate } from "@/components/auth/auth-gate";
 
-export const metadata = { title: "Reader home" };
+export const metadata = {
+  title: "Reader home",
+  description: "Continue reading, check your library, and see fresh free releases on Ashabi.",
+};
 
 export default function ReaderHomePage() {
-  return <AuthGate><ReaderHome /></AuthGate>;
+  return <ReaderHome />;
 }
+

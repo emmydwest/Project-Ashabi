@@ -1,5 +1,7 @@
 node_modules
 .next
 out
+.sites-package
 package-lock.json
 .npm-cache
+

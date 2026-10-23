@@ -1,26 +1,82 @@
+@import "tailwindcss";
+
 :root {
   --bg-0: #05070a;
   --bg-1: #080d12;
   --bg-2: #0c1319;
   --bg-3: #111a22;
+  --gold-50: #fff6e4;
+  --gold-100: #f8e6c4;
+  --gold-300: #f3d095;
+  --gold-400: #f3c47a;
+  --gold-500: #e8a95f;
+  --gold-600: #c98439;
   --gold: #f5bd43;
   --gold-bright: #ffd86a;
   --gold-deep: #a86816;
   --gold-brown: #7a4714;
   --gold-pressed: #d99524;
   --ivory: #e8d8c7;
+  --cream: #f5e8d6;
   --text-strong: #f7f6f2;
   --text: #d6dadf;
+  --text-muted: #9aa4ae;
+  --text-faint: #69747e;
   --muted: #9aa4ae;
   --inverse: #0a0c0f;
+  --text-inverse: #0a0c0f;
   --border: rgba(255, 255, 255, 0.1);
-  --border-gold: rgba(245, 189, 67, 0.5);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-gold: rgba(243, 196, 122, 0.45);
+  --glass: rgba(8, 13, 18, 0.72);
+  --success: #48c78e;
+  --warning: #e8b45e;
+  --danger: #f16f6f;
+  --info: #6ea8fe;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --gold-glow: 0 0 32px rgba(243, 196, 122, 0.18);
+  --gold-glow-strong: 0 0 48px rgba(243, 196, 122, 0.28);
   --scrim: rgba(5, 7, 10, 0.85);
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
   --font-ui: "Aptos", "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
   --font-display:
     "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
 }
+
+@theme inline {
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-surface: var(--bg-2);
+  --color-surface-raised: var(--bg-3);
+  --color-gold-50: var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-300: var(--gold-300);
+  --color-gold-400: var(--gold-400);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+  --color-ivory: var(--ivory);
+  --color-cream: var(--cream);
+  --color-text-strong: var(--text-strong);
+  --color-text-base: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-text-inverse: var(--text-inverse);
+  --color-border-subtle: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-gold: var(--border-gold);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-display);
+}
+
 * {
   box-sizing: border-box;
 }

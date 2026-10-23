@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { Icon } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 type Preferences = { genres?: string[]; formats?: string[]; discovery?: string[] };
 
 export function ReaderProfile() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -100,7 +102,7 @@ export function ReaderProfile() {
         <aside className="profile-rail">
           <section><div className="profile-rail-heading"><h2>Favorite Genres</h2><Link href="/onboarding">Edit</Link></div><div className="profile-genre-list">{genres.map((genre) => <span key={genre}>{genre}</span>)}</div><blockquote>“Good stories make a brighter tomorrow.”</blockquote></section>
           <section><div className="profile-rail-heading"><h2>Favorite Creators</h2></div><div className="profile-rail-empty"><Icon name="user" size={32} /><p>Follow creators you love and they’ll appear here.</p><Link href="/creators">Meet creators</Link></div></section>
-          <section className="profile-account-card"><h2>Account</h2><p>{user.email}</p><button type="button" onClick={() => createClient().auth.signOut().then(() => { window.location.href = "/"; })}><Icon name="logout" /> Sign out</button></section>
+          <section className="profile-account-card"><h2>Account</h2><p>{user.email}</p><button type="button" onClick={() => createClient().auth.signOut().then(() => { router.push("/"); router.refresh(); })}><Icon name="logout" /> Sign out</button></section>
         </aside>
       </div>
     </main>

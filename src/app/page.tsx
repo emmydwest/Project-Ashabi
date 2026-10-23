@@ -1,277 +1,561 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@/components/icons";
-import { StoryCard } from "@/components/story/story-card";
-import { stories, genres } from "@/lib/stories";
-export default function Home() {
+import { HomeComicStage } from "@/components/story/home-comic-stage";
+import { AniListHub } from "@/components/story/anilist-hub";
+import { AshabiPreviewNotice } from "@/components/layout/ashabi-preview-notice";
+import { getAniListHomeFeed } from "@/lib/anilist";
+import { creators as ashabiCreators, getPublicStories } from "@/lib/stories";
+
+export default async function Home() {
+  const [publicStories, aniListFeed] = await Promise.all([
+    Promise.resolve(getPublicStories()),
+    getAniListHomeFeed(),
+  ]);
+
+  const featuredManhwa =
+    aniListFeed.manhwa[0] ?? aniListFeed.spotlight[0];
+  const verticalPreviewPanels = [
+    aniListFeed.manhwa[0],
+    aniListFeed.manhwa[1],
+    aniListFeed.manhwa[2],
+  ].filter(Boolean);
+  const bingeShelf = [
+    ...aniListFeed.manga.slice(0, 3),
+    ...aniListFeed.anime.slice(0, 2),
+  ].slice(0, 5);
+
+  // Extract unique genres from live AniList feed
+  const liveGenres = Array.from(
+    new Set(
+      [
+        ...aniListFeed.manhwa,
+        ...aniListFeed.manga,
+        ...aniListFeed.anime,
+      ].flatMap((m) => m.genres),
+    ),
+  ).slice(0, 8);
+
   return (
-    <main id="main" className="home-page">
-      <section className="hero">
-        <div className="hero-art">
-          <Image
-            src="/images/hero-afrofuturist-city.webp"
-            alt="A woman overlooking an Afrofuturist city at sunset"
-            fill
-            priority
-            sizes="(max-width:700px) 100vw, 75vw"
-          />
-        </div>
-        <div className="hero-shade" />
-        <div className="hero-orbit hero-orbit-one" aria-hidden="true" />
-        <div className="hero-orbit hero-orbit-two" aria-hidden="true" />
-        <div className="hero-copy">
-          <p className="eyebrow hero-reveal hero-delay-1">
-            African stories. Global worlds.
-          </p>
-          <h1>
-            <span className="hero-line hero-reveal hero-delay-2">Read.</span>
-            <br />
-            <span className="hero-line hero-reveal hero-delay-3">
-              Discover.
-            </span>
-            <br />
-            <span className="hero-line hero-gold hero-reveal hero-delay-4">
-              Belong.
-            </span>
-          </h1>
-          <p className="hero-description hero-reveal hero-delay-5">
-            Comics, graphic novels, and extraordinary stories from Africa. Find
-            a world that stays with you.
-          </p>
-          <div className="hero-actions hero-reveal hero-delay-6">
-            <Link className="button primary" href="/discover">
-              Start Exploring <Icon name="arrow" />
-            </Link>
-            <Link className="button glass-button" href="/signup">
-              Join Ashabi
-            </Link>
-          </div>
-          <div className="hero-note hero-reveal hero-delay-6">
-            <span className="note-line" />A new home for African imagination
-          </div>
-        </div>
-        <div className="hero-caption glass-panel">
-          <span>01</span>
-          DIFFERENT STORIES.
-          <br />
-          SAME HUMAN DREAMS.
-        </div>
-      </section>
-      <div className="content">
-        <nav className="genre-bar" aria-label="Browse genres">
-          {genres.map((g, i) => (
-            <Link
-              key={g}
-              className={"genre " + (i === 0 ? "selected" : "")}
-              href={"/discover" + (i ? "?genre=" + encodeURIComponent(g) : "")}
-            >
-              <Icon name={i === 0 ? "grid" : "compass"} size={18} />
-              {g}
-            </Link>
-          ))}
-        </nav>
-        <section className="feature reveal-card">
-          <Image
-            src="/images/featured-baobab.webp"
-            alt="A traveller beneath an ancient baobab tree at sunset"
-            fill
-            sizes="(max-width:700px) 100vw, 90vw"
-          />
-          <div className="feature-shade" />
-          <div className="feature-copy">
-            <p className="eyebrow">Inside the concept collection</p>
-            <h2>
-              The Last <span>Baobab</span>
-            </h2>
-            <div className="tags">
-              <span>Fantasy</span>
-              <span>Adventure</span>
-              <span>Drama</span>
-            </div>
-            <p>{stories[0].description}</p>
-            <Link className="button primary" href="/stories/the-last-baobab">
-              Explore the story <Icon name="arrow" />
-            </Link>
-          </div>
-          <p className="feature-quote">
-            Some roots
-            <br />
-            never die.
-          </p>
-        </section>
-        <section className="collection">
-          <div className="section-heading">
+    <main
+      id="main"
+      className="max-w-[1480px] mx-auto px-4 sm:px-8 lg:px-12 pt-5 pb-20 space-y-12"
+    >
+      {/* 0. African Comic Platform Welcome Modal & Persistent Notice Bar */}
+      <AshabiPreviewNotice />
+
+      {/* 1. Interactive Spotlight Carousel (Populated by AniList Top Manhwa, Manga & Anime) */}
+      <HomeComicStage
+        spotlightItems={aniListFeed.spotlight}
+        stories={publicStories}
+      />
+
+      {/* 2. Quick Format & Genre Pill Strip */}
+      <nav
+        aria-label="Browse by category or genre"
+        className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar"
+      >
+        <a
+          href="#anilist-hub-heading"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap border border-[var(--border-gold)] bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)] shadow-[var(--gold-glow)]"
+        >
+          <Icon name="flame" size={16} />
+          <span>Trending Manhwa · Manga · Anime</span>
+        </a>
+        <a
+          href="#latest-drops-heading"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap border border-[var(--border)] bg-[var(--bg-2)] text-[var(--ivory)] hover:border-[var(--border-gold)]"
+        >
+          <Icon name="clock" size={15} />
+          <span>New Weekly Drops</span>
+        </a>
+        <a
+          href="#schedule-heading"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap border border-[var(--border)] bg-[var(--bg-2)] text-[var(--ivory)] hover:border-[var(--border-gold)]"
+        >
+          <Icon name="calendar" size={15} />
+          <span>Release Calendar</span>
+        </a>
+        <span className="h-5 w-px bg-[var(--border)] mx-1 shrink-0" />
+        {liveGenres.map((g) => (
+          <Link
+            key={g}
+            href={`/discover?genre=${encodeURIComponent(g)}`}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap border border-[var(--border)] bg-white/[0.03] text-[var(--text)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] transition-all"
+          >
+            <Icon name="compass" size={14} />
+            <span>{g}</span>
+          </Link>
+        ))}
+      </nav>
+
+      {/* 3. Two-Column Comic Hub: Live AniList Releasing Drops (Left 8 cols) + Top 8 Popular Leaderboard (Right 4 cols) */}
+      <div className="grid lg:grid-cols-12 gap-8 items-start">
+        {/* Left: Fresh Releasing Manhwa, Manga & Anime Drops */}
+        <section
+          aria-labelledby="latest-drops-heading"
+          className="lg:col-span-8 space-y-5"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--border)] pb-3">
             <div>
-              <p className="eyebrow">Your next world awaits</p>
-              <h2>Stories to get lost in</h2>
+              <p className="eyebrow mb-1">
+                Live AniList Serialization · Releasing Now
+              </p>
+              <h2
+                id="latest-drops-heading"
+                className="text-2xl sm:text-3xl font-extrabold tracking-tight"
+              >
+                New Chapter &amp; Episode Drops
+              </h2>
             </div>
-            <Link href="/discover" className="text-link">
-              Explore all <Icon name="arrow" size={18} />
-            </Link>
+            <a href="#anilist-hub-heading" className="text-link">
+              <span>Browse full charts</span>
+              <Icon name="arrow" size={16} />
+            </a>
           </div>
-          <div className="story-grid home-story-grid">
-            {stories.slice(1).map((story) => (
-              <StoryCard key={story.slug} story={story} />
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            {aniListFeed.recentDrops.map((item, idx) => (
+              <Link
+                key={item.id}
+                href={`/anilist/${item.id}`}
+                className="group relative rounded-[20px] border border-[var(--border)] bg-[var(--bg-2)] p-3.5 flex gap-4 items-center transition-all hover:border-[var(--border-gold)] hover:-translate-y-0.5 hover:bg-[var(--bg-3)]"
+              >
+                {/* Cover Thumbnail */}
+                <div className="relative w-24 h-34 rounded-[14px] overflow-hidden shrink-0 border border-white/10">
+                  <Image
+                    src={item.coverImage}
+                    alt={item.title}
+                    fill
+                    sizes="96px"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-[var(--gold)] text-[#140c02]">
+                    {item.category}
+                  </span>
+                  {idx < 4 ? (
+                    <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-[#48c78e] text-[#051b10]">
+                      UP
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Metadata */}
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--gold-bright)] truncate">
+                      {item.genres.slice(0, 2).join(" · ") || item.category}
+                    </span>
+                    {item.averageScore ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#68e3ab] shrink-0">
+                        <Icon name="star" size={11} />
+                        {item.averageScore}%
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] truncate m-0">
+                    {item.title}
+                  </h3>
+
+                  <p className="text-xs font-semibold text-[var(--ivory)] truncate m-0">
+                    {item.chapters
+                      ? `${item.chapters} Chapters Released`
+                      : item.episodes
+                        ? `${item.episodes} Episodes Airing`
+                        : `${item.status} · Ongoing Serialization`}
+                  </p>
+
+                  <p className="text-xs text-[var(--text-muted)] line-clamp-2 m-0">
+                    {item.description}
+                  </p>
+
+                  <div className="pt-1 flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--text-muted)] truncate">
+                      {item.authorName}
+                    </span>
+                    <span className="inline-flex items-center gap-1 font-bold text-[var(--gold-bright)] shrink-0">
+                      Open <Icon name="play" size={12} />
+                    </span>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
-          <p className="demo-note">
-            A first look at Ashabi. These are concept titles and artwork, with
-            no published chapters yet.
-          </p>
-        </section>
-        <section className="ashabi-intro section-space">
-          <div className="intro-statement">
-            <p className="eyebrow">More than a shelf</p>
-            <h2>
-              A living home for <span>African imagination.</span>
-            </h2>
-            <p>
-              Ashabi brings readers and creators together around stories with
-              African roots and global ambition. Discover new worlds, follow the
-              voices behind them, and return whenever the next chapter arrives.
-            </p>
-            <Link href="/about" className="text-link">
-              The story behind Ashabi <Icon name="arrow" size={18} />
-            </Link>
-          </div>
-          <div className="intro-principles" aria-label="What Ashabi stands for">
-            <article>
-              <span className="principle-number">01</span>
-              <div>
-                <h3>Story first</h3>
-                <p>Artwork, characters, and chapters lead every experience.</p>
-              </div>
-            </article>
-            <article>
-              <span className="principle-number">02</span>
-              <div>
-                <h3>African in origin</h3>
-                <p>Rooted in many cultures, built to travel across borders.</p>
-              </div>
-            </article>
-            <article>
-              <span className="principle-number">03</span>
-              <div>
-                <h3>Creator powered</h3>
-                <p>A curated platform where approved creators can grow.</p>
-              </div>
-            </article>
-          </div>
         </section>
 
-        <section className="formats section-space">
-          <div className="section-heading formats-heading">
-            <div>
-              <p className="eyebrow">Read it your way</p>
-              <h2>One home. Many forms of story.</h2>
-            </div>
-            <p>
-              From a vertical scroll to a quiet chapter of prose, each format
-              gets space to feel natural.
-            </p>
-          </div>
-          <div className="format-grid">
-            <article className="format-card format-card-large">
-              <Image
-                src="/images/story-neon-lagos.webp"
-                alt="Neon Lagos concept artwork"
-                fill
-                sizes="(max-width:700px) 100vw, 48vw"
-              />
-              <div className="format-overlay" />
-              <div className="format-content">
-                <span>01</span>
-                <Icon name="book" size={28} />
-                <h3>Comics & graphic novels</h3>
-                <p>Page by page or in one uninterrupted vertical journey.</p>
-              </div>
-            </article>
-            <article className="format-card">
-              <Image
-                src="/images/story-ashes-petals.webp"
-                alt="Ashes and Petals concept artwork"
-                fill
-                sizes="(max-width:700px) 100vw, 24vw"
-              />
-              <div className="format-overlay" />
-              <div className="format-content">
-                <span>02</span>
-                <h3>Illustrated stories</h3>
-                <p>Words and images woven into a single world.</p>
-              </div>
-            </article>
-            <article className="format-card format-card-prose">
-              <div className="prose-mark">Aa</div>
-              <div className="format-content">
-                <span>03</span>
-                <h3>Serialized fiction</h3>
-                <p>
-                  Read slowly, follow closely, and return for every chapter.
+        {/* Right: Top 8 Most Popular Series Leaderboard */}
+        <aside
+          aria-labelledby="top-series-heading"
+          className="lg:col-span-4 rounded-[24px] border border-[rgba(245,189,67,0.28)] bg-gradient-to-b from-[#0d151c] to-[#070b0f] p-5 sm:p-6 space-y-5 shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-[rgba(245,189,67,0.16)] border border-[var(--border-gold)] grid place-items-center text-[var(--gold-bright)]">
+                <Icon name="flame" size={18} />
+              </span>
+              <div>
+                <h2
+                  id="top-series-heading"
+                  className="text-lg font-extrabold m-0"
+                >
+                  Most Popular Series
+                </h2>
+                <p className="text-[11px] text-[var(--text-muted)] m-0">
+                  All-Time AniList Reader Rankings
                 </p>
               </div>
-            </article>
+            </div>
+            <a
+              href="#anilist-hub-heading"
+              className="text-xs font-bold text-[var(--gold-bright)] hover:underline"
+            >
+              Top 30
+            </a>
           </div>
-        </section>
 
-        <section className="reader-journey section-space">
-          <div className="journey-copy">
-            <p className="eyebrow">Built around the reader</p>
-            <h2>Find a world. Stay for the journey.</h2>
-            <p>
-              Ashabi is designed to move from discovery to reading without
-              getting in the story’s way.
-            </p>
-            <Link className="button primary" href="/discover">
-              Find your next story <Icon name="arrow" />
-            </Link>
-          </div>
-          <div className="journey-steps">
-            <article>
-              <Icon name="compass" size={24} />
-              <div>
-                <span>Discover</span>
-                <p>Browse worlds by mood, genre, and voice.</p>
-              </div>
-            </article>
-            <article>
-              <Icon name="book" size={24} />
-              <div>
-                <span>Read</span>
-                <p>A calm, cinematic home for every chapter.</p>
-              </div>
-            </article>
-            <article>
-              <Icon name="grid" size={24} />
-              <div>
-                <span>Return</span>
-                <p>Keep your stories close and continue where you stopped.</p>
-              </div>
-            </article>
-          </div>
-        </section>
+          <ol className="space-y-2.5 m-0 p-0 list-none">
+            {aniListFeed.leaderboard.map((item, idx) => (
+              <li key={item.id}>
+                <Link
+                  href={`/anilist/${item.id}`}
+                  className="group flex items-center gap-3.5 p-2 rounded-[16px] border border-transparent hover:border-[var(--border-gold)] hover:bg-white/[0.03] transition-all"
+                >
+                  <span
+                    className={
+                      "w-7 text-center font-serif text-2xl font-bold shrink-0 " +
+                      (idx === 0
+                        ? "text-[var(--gold-bright)]"
+                        : idx < 3
+                          ? "text-[var(--gold)]"
+                          : "text-[var(--text-muted)]")
+                    }
+                  >
+                    0{idx + 1}
+                  </span>
 
-        <section className="creator-banner reveal-card">
-          <Image
-            src="/images/creator-studio-art.webp"
-            alt="An illustrator working on a story in a warmly lit studio"
-            fill
-            sizes="90vw"
-          />
-          <div className="feature-shade" />
-          <div>
-            <p className="eyebrow">Create. Share. Be seen.</p>
-            <h2>Your stories belong here.</h2>
-            <p>
-              Writers, artists, and world-builders.
-              <br />
-              Help shape the next chapter of African storytelling.
-            </p>
-            <Link className="button secondary" href="/creators">
-              Discover Ashabi for creators <Icon name="arrow" />
-            </Link>
-          </div>
-        </section>
+                  <div className="relative w-13 h-18 rounded-[10px] overflow-hidden shrink-0 border border-white/10">
+                    <Image
+                      src={item.coverImage}
+                      alt={item.title}
+                      fill
+                      sizes="52px"
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)]">
+                        {item.category}
+                      </span>
+                      {item.averageScore ? (
+                        <span className="text-[10px] font-bold text-[#68e3ab]">
+                          · {item.averageScore}%
+                        </span>
+                      ) : null}
+                    </div>
+                    <h3 className="text-sm font-bold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] truncate m-0">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] truncate m-0">
+                      {item.authorName}
+                      {item.popularity
+                        ? ` · ${Math.round(item.popularity / 1000)}k fans`
+                        : ""}
+                    </p>
+                  </div>
+
+                  <span className="w-8 h-8 rounded-full border border-[var(--border)] grid place-items-center text-[var(--text-muted)] group-hover:text-[var(--gold-bright)] group-hover:border-[var(--border-gold)] shrink-0">
+                    <Icon name="play" size={13} />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </aside>
       </div>
+
+      {/* 4. Weekly Serialization Schedule Bar (MON - SUN Populated by AniList) */}
+      <section
+        aria-labelledby="schedule-heading"
+        className="rounded-[24px] border border-[var(--border)] bg-[rgba(10,16,22,0.85)] p-6 sm:p-8 space-y-5"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow mb-1">Weekly Serialization Lineup</p>
+            <h2
+              id="schedule-heading"
+              className="text-2xl sm:text-3xl font-extrabold"
+            >
+              Daily Manhwa, Manga &amp; Simulcast Drops
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] m-0">
+            Click any day’s featured series to open its full hub, character
+            roster, and official platform links.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3.5">
+          {aniListFeed.weeklySchedule.map((slot) => (
+            <Link
+              key={slot.day}
+              href={`/anilist/${slot.media.id}`}
+              className="group rounded-[18px] border border-[var(--border)] bg-[var(--bg-1)] overflow-hidden flex flex-col justify-between transition-all hover:border-[var(--border-gold)] hover:-translate-y-1"
+            >
+              <div className="relative h-44 w-full overflow-hidden">
+                <Image
+                  src={slot.media.coverImage}
+                  alt={slot.media.title}
+                  fill
+                  sizes="(max-width:640px) 90vw, 15vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-black/45" />
+                <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md text-xs font-extrabold tracking-widest bg-[var(--gold)] text-[#140c02]">
+                  {slot.day}
+                </span>
+                <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-black/80 text-[var(--ivory)] border border-white/15">
+                  {slot.label}
+                </span>
+                {slot.media.averageScore ? (
+                  <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-[#12281e]/90 text-[#68e3ab]">
+                    {slot.media.averageScore}%
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="p-3.5 space-y-1">
+                <h3 className="text-sm font-bold group-hover:text-[var(--gold-bright)] truncate m-0">
+                  {slot.media.title}
+                </h3>
+                <p className="text-[11px] text-[var(--text-muted)] truncate m-0">
+                  {slot.media.authorName}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. Interactive Global Manhwa, Manga & Anime Hub (Tabs + Genre Filter + 30 Titles) */}
+      <AniListHub feed={aniListFeed} />
+
+      {/* 6. Top Creators & Illustrators Strip (Populated from AniList Staff) */}
+      <section
+        aria-labelledby="creators-strip-heading"
+        className="rounded-[26px] border border-[var(--border)] bg-[var(--bg-2)] p-6 sm:p-8 space-y-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow mb-1">The Voices Behind the Panels</p>
+            <h2
+              id="creators-strip-heading"
+              className="text-2xl sm:text-3xl font-extrabold"
+            >
+              Top Manhwa, Manga &amp; Comic Creators
+            </h2>
+          </div>
+          <Link href="/creators" className="button secondary text-xs">
+            <span>Ashabi Creator Directory</span>
+            <Icon name="arrow" size={15} />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {aniListFeed.topCreators.length > 0
+            ? aniListFeed.topCreators.map((creator) => (
+                <Link
+                  key={creator.id}
+                  href={`/anilist/${creator.featuredWorkId}`}
+                  className="group rounded-[18px] border border-[var(--border)] bg-[var(--bg-1)] p-4 flex items-center gap-4 hover:border-[var(--border-gold)] transition-all"
+                >
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--gold)] shrink-0 bg-[#090f15]">
+                    <Image
+                      src={creator.avatar}
+                      alt={creator.name}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block truncate">
+                      {creator.category} · {creator.role}
+                    </span>
+                    <h3 className="text-base font-bold group-hover:text-[var(--gold-bright)] truncate m-0">
+                      {creator.name}
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] truncate m-0">
+                      Featured: {creator.featuredWorkTitle}
+                    </p>
+                  </div>
+                  <Icon name="arrow" size={16} />
+                </Link>
+              ))
+            : ashabiCreators.map((creator) => (
+                <Link
+                  key={creator.username}
+                  href={`/creators/${creator.username}`}
+                  className="group rounded-[18px] border border-[var(--border)] bg-[var(--bg-1)] p-4 flex items-center gap-4 hover:border-[var(--border-gold)] transition-all"
+                >
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--gold)] shrink-0">
+                    <Image
+                      src={`/images/${creator.avatarImage}.webp`}
+                      alt={creator.displayName}
+                      fill
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block">
+                      {creator.roleLabel}
+                    </span>
+                    <h3 className="text-base font-bold group-hover:text-[var(--gold-bright)] truncate m-0">
+                      {creator.displayName}
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] truncate m-0">
+                      {creator.specialties.join(" · ")}
+                    </p>
+                  </div>
+                  <Icon name="arrow" size={16} />
+                </Link>
+              ))}
+        </div>
+      </section>
+
+      {/* 7. Vertical Webtoon & Manhwa Panel Showcase + Binge Shelf (Propagated with AniList) */}
+      <section
+        aria-labelledby="panel-peek-heading"
+        className="rounded-[28px] border border-[rgba(245,189,67,0.3)] bg-gradient-to-b from-[#0b1218] to-[#05070a] p-6 sm:p-10 space-y-8"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-1">
+            <p className="eyebrow mb-1">
+              Vertical Webtoon &amp; Manhwa Showcase · AniList Live
+            </p>
+            <h2
+              id="panel-peek-heading"
+              className="text-2xl sm:text-3xl font-extrabold"
+            >
+              Inside the Vertical Webtoon Stage:{" "}
+              {featuredManhwa?.title ?? "Top Manhwa"}
+            </h2>
+            <p className="text-sm text-[var(--text-muted)] max-w-2xl m-0">
+              Preview the top vertical webtoon &amp; manhwa visual cards from
+              AniList below, or jump into our built-in vertical comic reader to
+              test the scroll experience.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {featuredManhwa ? (
+              <Link
+                href={`/anilist/${featuredManhwa.id}`}
+                className="button primary"
+              >
+                <Icon name="play" size={18} />
+                <span>Explore {featuredManhwa.title}</span>
+              </Link>
+            ) : null}
+            <Link
+              href="/read/neon-lagos/rain-on-the-third-mainland"
+              className="button secondary"
+            >
+              <Icon name="book" size={16} />
+              <span>Test Vertical Reader Demo</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {verticalPreviewPanels.map((panelItem, idx) => (
+            <Link
+              key={panelItem.id}
+              href={`/anilist/${panelItem.id}`}
+              className="group rounded-[20px] overflow-hidden border border-[var(--border)] bg-[var(--bg-0)] flex flex-col justify-between transition-all hover:border-[var(--border-gold)] hover:-translate-y-1"
+            >
+              <div className="relative aspect-[4/5] w-full overflow-hidden">
+                <Image
+                  src={panelItem.coverImage}
+                  alt={panelItem.title}
+                  fill
+                  sizes="(max-width:768px) 95vw, 33vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-black/30" />
+                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-black/80 text-[var(--gold-bright)] border border-white/15">
+                  Manhwa Spotlight 0{idx + 1}
+                </span>
+                {panelItem.averageScore ? (
+                  <span className="absolute top-3 right-3 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-[#12281e]/90 text-[#68e3ab]">
+                    {panelItem.averageScore}%
+                  </span>
+                ) : null}
+              </div>
+              <div className="p-4 border-t border-[var(--border)] bg-[#080d12]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block">
+                  {panelItem.title} · {panelItem.authorName}
+                </span>
+                <p className="text-xs sm:text-sm text-[var(--text-strong)] mt-1 mb-0 line-clamp-2">
+                  “{panelItem.description}”
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <div className="pt-4 border-t border-[var(--border)] space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-extrabold m-0">
+              Must-Binge Manga &amp; Anime Classics (AniList Top Rated)
+            </h3>
+            <a href="#anilist-hub-heading" className="text-link text-xs">
+              <span>Full 30-Series Chart</span>
+              <Icon name="arrow" size={14} />
+            </a>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+            {bingeShelf.map((item) => (
+              <Link
+                key={item.id}
+                href={`/anilist/${item.id}`}
+                className="group rounded-[18px] border border-[var(--border)] bg-[var(--bg-2)] overflow-hidden flex flex-col justify-between transition-all hover:border-[var(--border-gold)] hover:-translate-y-1"
+              >
+                <div className="relative aspect-[2/3] w-full overflow-hidden">
+                  <Image
+                    src={item.coverImage}
+                    alt={item.title}
+                    fill
+                    sizes="(max-width:640px) 48vw, 19vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-black/30" />
+                  <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[var(--gold)] text-[#140c02]">
+                    {item.category}
+                  </span>
+                  {item.averageScore ? (
+                    <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-extrabold bg-[#12281e]/90 text-[#68e3ab]">
+                      {item.averageScore}%
+                    </span>
+                  ) : null}
+                </div>
+                <div className="p-3.5 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block truncate">
+                    {item.genres.slice(0, 2).join(" · ") || item.category}
+                  </span>
+                  <h4 className="text-sm font-extrabold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] truncate m-0">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-[var(--text-muted)] truncate m-0">
+                    {item.authorName}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
