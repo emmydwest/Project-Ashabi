@@ -2,8 +2,17 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Icon } from "@/components/icons";
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronRight,
+  ExternalLink,
+  Layers,
+  Play,
+  Star,
+} from "lucide-react";
 import { getAniListMediaById } from "@/lib/anilist";
+import { getMangaDexChaptersForTitle } from "@/lib/mangadex";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -39,36 +48,37 @@ export default async function AniListSeriesPage({ params }: PageProps) {
     notFound();
   }
 
+  const { chapters } = await getMangaDexChaptersForTitle(
+    media.title,
+    media.nativeTitle,
+  );
+  const firstChapter = chapters[0];
   const officialLinks = (media.externalLinks ?? []).slice(0, 8);
 
   return (
     <main
       id="main"
-      className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 pt-6 pb-20 space-y-12"
+      className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 pb-24 space-y-14"
     >
-      {/* Breadcrumb */}
+      {/* Top Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        className="flex items-center gap-2 text-xs text-[var(--text-muted)]"
+        className="flex items-center justify-between gap-4"
       >
-        <Link href="/" className="hover:text-[var(--gold-bright)]">
-          Home
-        </Link>
-        <span>/</span>
         <Link
-          href="/#anilist-hub-heading"
-          className="hover:text-[var(--gold-bright)]"
+          href="/?explore=1#anilist-hub-heading"
+          className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
         >
-          Global {media.category} Chart
+          <ArrowLeft className="w-4 h-4 text-[var(--gold-bright)]" />
+          <span>Back to {media.category} Hub</span>
         </Link>
-        <span>/</span>
-        <span className="text-[var(--ivory)] font-semibold truncate">
-          {media.title}
+        <span className="text-xs text-[var(--text-muted)] truncate">
+          {media.category} · In-App Vertical Chapter Reader
         </span>
       </nav>
 
       {/* Hero Stage */}
-      <section className="relative rounded-[30px] overflow-hidden border border-[rgba(245,189,67,0.34)] bg-[#06090e] shadow-[0_28px_80px_rgba(0,0,0,0.65)]">
+      <section className="liquid-glass-gold relative rounded-[32px] overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src={media.bannerImage || media.coverImage}
@@ -76,16 +86,16 @@ export default async function AniListSeriesPage({ params }: PageProps) {
             fill
             priority
             sizes="100vw"
-            className="object-cover opacity-35 scale-105"
+            className="object-cover opacity-30 scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#05070a] via-[#05070a]/92 to-[#05070a]/55" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#05080c] via-[#05080c]/92 to-[#05080c]/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#05080c] via-transparent to-black/40" />
         </div>
 
-        <div className="relative z-10 grid lg:grid-cols-12 gap-8 p-6 sm:p-10 items-center">
+        <div className="relative z-10 grid lg:grid-cols-12 gap-8 p-6 sm:p-10 lg:p-12 items-center">
           {/* Portrait Cover */}
           <div className="lg:col-span-3 flex justify-center lg:justify-start">
-            <div className="relative w-52 sm:w-64 aspect-[2/3] rounded-[20px] overflow-hidden border-2 border-[rgba(245,189,67,0.45)] shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
+            <div className="relative w-52 sm:w-64 aspect-[2/3] rounded-[22px] overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
               <Image
                 src={media.coverImage}
                 alt={media.title}
@@ -100,37 +110,21 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           {/* Series Metadata & Synopsis */}
           <div className="lg:col-span-9 space-y-5">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-[var(--gold)] text-[#140c02]">
+              <span className="neu-pill-active px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
                 {media.category} · {media.countryOfOrigin}
               </span>
               {media.averageScore ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[#12281e] text-[#68e3ab] border border-[#48c78e]/40">
-                  <Icon name="star" size={13} />
-                  <span>{media.averageScore}% Community Score</span>
+                <span className="neu-pill inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold text-[#68e3ab]">
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>{media.averageScore}% Score</span>
                 </span>
               ) : null}
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-[var(--ivory)]">
+              <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--ivory)]">
                 {media.status}
               </span>
-              {media.chapters ? (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-[var(--text-muted)]">
-                  {media.chapters} Chapters
-                </span>
-              ) : null}
-              {media.episodes ? (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 text-[var(--text-muted)]">
-                  {media.episodes} Episodes
-                </span>
-              ) : null}
-              {media.trailer ? (
-                <a
-                  href="#series-trailer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)] border border-[var(--border-gold)]"
-                >
-                  <Icon name="play" size={12} />
-                  <span>Trailer Below</span>
-                </a>
-              ) : null}
+              <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--gold-bright)]">
+                {chapters.length} Readable Chapters
+              </span>
             </div>
 
             <div>
@@ -152,7 +146,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                     {" "}
                     ·{" "}
                     <span className="text-[var(--gold-bright)] font-semibold">
-                      {media.popularity.toLocaleString()} AniList Readers
+                      {media.popularity.toLocaleString()} Readers
                     </span>
                   </>
                 ) : null}
@@ -163,13 +157,13 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               {media.description}
             </p>
 
-            {/* Genres (Link to Discover with Genre Filter) */}
+            {/* Genres */}
             <div className="flex flex-wrap items-center gap-2">
               {media.genres.map((genre) => (
                 <Link
                   key={genre}
                   href={`/discover?genre=${encodeURIComponent(genre)}`}
-                  className="px-3 py-1 rounded-full text-xs font-semibold bg-white/[0.06] border border-white/10 text-[var(--ivory)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] transition-all"
+                  className="neu-inset px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--ivory)] hover:text-[var(--gold-bright)] transition-colors"
                 >
                   {genre}
                 </Link>
@@ -178,27 +172,102 @@ export default async function AniListSeriesPage({ params }: PageProps) {
 
             {/* Primary Actions */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              {firstChapter ? (
+                <Link
+                  href={`/anilist/${media.id}/read/${firstChapter.id}`}
+                  className="neu-pill-active inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full text-xs sm:text-sm font-extrabold"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>
+                    Read Chapter {firstChapter.chapterNumber} In-App
+                  </span>
+                </Link>
+              ) : null}
+
+              <a
+                href="#playable-chapters"
+                className="neu-pill inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+              >
+                <Layers className="w-4 h-4 text-[var(--gold-bright)]" />
+                <span>All Chapters ({chapters.length})</span>
+              </a>
+
               {media.trailer ? (
-                <a href="#series-trailer" className="button primary">
-                  <Icon name="play" size={17} />
+                <a
+                  href="#series-trailer"
+                  className="neu-pill inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+                >
+                  <Play className="w-4 h-4 text-[var(--gold-bright)] fill-current" />
                   <span>Watch Official Trailer</span>
                 </a>
               ) : null}
-              <a
-                href={media.siteUrl}
-                target="_blank"
-                rel="noreferrer"
-                className={media.trailer ? "button secondary" : "button primary"}
-              >
-                <Icon name="globe" size={17} />
-                <span>Open Official AniList Page</span>
-              </a>
-              <Link href="/" className="button secondary">
-                <Icon name="compass" size={16} />
-                <span>Back to Comic Hub</span>
-              </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* In-App Readable Chapters List */}
+      <section
+        id="playable-chapters"
+        aria-labelledby="chapters-heading"
+        className="liquid-glass rounded-[30px] p-6 sm:p-10 space-y-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--gold-bright)]">
+              <Layers className="w-3.5 h-3.5" />
+              <span>Full Vertical Strip Reader</span>
+            </span>
+            <h2
+              id="chapters-heading"
+              className="text-2xl sm:text-3xl font-extrabold m-0"
+            >
+              Read Chapters on Ashabi
+            </h2>
+          </div>
+
+          {firstChapter ? (
+            <Link
+              href={`/anilist/${media.id}/read/${firstChapter.id}`}
+              className="neu-pill-active inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Start from Chapter {firstChapter.chapterNumber}</span>
+            </Link>
+          ) : null}
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[540px] overflow-y-auto pr-1">
+          {chapters.map((chapter) => (
+            <Link
+              key={chapter.id}
+              href={`/anilist/${media.id}/read/${chapter.id}`}
+              className="neu-card group rounded-[18px] p-4 flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--gold-bright)]">
+                    Chapter {chapter.chapterNumber}
+                  </span>
+                  <span className="text-[11px] text-[var(--text-muted)]">
+                    · {chapter.pages} Pages
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] truncate m-0">
+                  {chapter.title}
+                </h3>
+                {chapter.scanlationGroup ? (
+                  <p className="text-[11px] text-[var(--text-muted)] truncate m-0">
+                    {chapter.scanlationGroup}
+                  </p>
+                ) : null}
+              </div>
+
+              <span className="neu-pill w-9 h-9 rounded-full grid place-items-center text-[var(--ivory)] group-hover:text-[var(--gold-bright)] shrink-0">
+                <ChevronRight className="w-4 h-4" />
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -207,7 +276,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
         <section
           id="series-trailer"
           aria-labelledby="trailer-heading"
-          className="rounded-[26px] border border-[rgba(245,189,67,0.34)] bg-gradient-to-b from-[#0b131b] to-[#06090d] p-6 sm:p-8 space-y-5 shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+          className="liquid-glass rounded-[30px] p-6 sm:p-10 space-y-5"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -223,14 +292,14 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               href={media.trailer.watchUrl}
               target="_blank"
               rel="noreferrer"
-              className="button secondary text-xs"
+              className="neu-pill inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold text-[var(--ivory)]"
             >
-              <Icon name="external" size={14} />
+              <ExternalLink className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
               <span>Open on {media.trailer.site}</span>
             </a>
           </div>
 
-          <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-[20px] overflow-hidden border border-[var(--border-gold)] bg-black shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+          <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-[22px] overflow-hidden border border-[var(--border-gold)] bg-black shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
             <iframe
               src={media.trailer.embedUrl}
               title={`${media.title} Official Trailer`}
@@ -238,34 +307,6 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
-          </div>
-        </section>
-      ) : null}
-
-      {/* Official Reading & Streaming Platforms */}
-      {officialLinks.length > 0 ? (
-        <section className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-2)] p-6 sm:p-8 space-y-4">
-          <div>
-            <p className="eyebrow mb-1">Verified External Platforms</p>
-            <h2 className="text-xl sm:text-2xl font-extrabold m-0">
-              Official Reading &amp; Streaming Links
-            </h2>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            {officialLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-[14px] border border-[var(--border)] bg-[var(--bg-1)] text-xs sm:text-sm font-bold text-[var(--text-strong)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] transition-all"
-              >
-                <Icon name="globe" size={15} />
-                <span>{link.site}</span>
-                <Icon name="arrow" size={13} />
-              </a>
-            ))}
           </div>
         </section>
       ) : null}
@@ -280,11 +321,11 @@ export default async function AniListSeriesPage({ params }: PageProps) {
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
             {media.characters.map((char) => (
               <div
                 key={char.id}
-                className="rounded-[18px] border border-[var(--border)] bg-[var(--bg-2)] overflow-hidden flex flex-col"
+                className="neu-card rounded-[20px] overflow-hidden flex flex-col"
               >
                 <div className="relative aspect-[3/4] w-full bg-[#090f15]">
                   {char.image ? (
@@ -297,7 +338,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                     />
                   ) : null}
                 </div>
-                <div className="p-3 space-y-0.5">
+                <div className="p-3.5 space-y-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block">
                     {char.role}
                   </span>
@@ -306,6 +347,33 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                   </h3>
                 </div>
               </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Official External Links */}
+      {officialLinks.length > 0 ? (
+        <section className="liquid-glass rounded-[26px] p-6 sm:p-8 space-y-4">
+          <div>
+            <p className="eyebrow mb-1">Verified External Platforms</p>
+            <h2 className="text-xl sm:text-2xl font-extrabold m-0">
+              Official Publisher &amp; Reference Links
+            </h2>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {officialLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                className="neu-pill inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+              >
+                <span>{link.site}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
+              </a>
             ))}
           </div>
         </section>
@@ -321,20 +389,20 @@ export default async function AniListSeriesPage({ params }: PageProps) {
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
             {media.recommendations.map((rec) => (
               <Link
                 key={rec.id}
                 href={`/anilist/${rec.id}`}
-                className="group rounded-[18px] border border-[var(--border)] bg-[var(--bg-2)] overflow-hidden flex flex-col hover:border-[var(--border-gold)] transition-all"
+                className="group space-y-2.5"
               >
-                <div className="relative aspect-[2/3] w-full overflow-hidden">
+                <div className="neu-card relative aspect-[2/3] w-full rounded-[20px] overflow-hidden">
                   <Image
                     src={rec.coverImage}
                     alt={rec.title}
                     fill
                     sizes="220px"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {rec.averageScore ? (
                     <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-black/80 text-[#68e3ab]">
@@ -342,7 +410,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                     </span>
                   ) : null}
                 </div>
-                <div className="p-3.5">
+                <div className="px-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block">
                     {rec.countryOfOrigin === "KR" ? "MANHWA" : rec.type}
                   </span>

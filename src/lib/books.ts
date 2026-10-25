@@ -1,3 +1,9 @@
+export interface BookChapter {
+  number: number;
+  title: string;
+  paragraphs: string[];
+}
+
 export interface PublicBook {
   id: number;
   title: string;
@@ -34,7 +40,10 @@ function formatAuthorName(raw?: string): string {
   return raw;
 }
 
-function cleanSubjects(subjects: string[] = [], shelves: string[] = []): string[] {
+function cleanSubjects(
+  subjects: string[] = [],
+  shelves: string[] = [],
+): string[] {
   const combined = [...shelves, ...subjects]
     .map((s) =>
       s
@@ -58,10 +67,10 @@ function normalizeBook(raw: RawGutendexBook): PublicBook {
     `https://www.gutenberg.org/ebooks/${raw.id}.html.images`;
 
   const readTextUrl =
-    formats["text/plain; charset=us-ascii"] ||
     formats["text/plain; charset=utf-8"] ||
+    formats["text/plain; charset=us-ascii"] ||
     formats["text/plain"] ||
-    null;
+    `https://www.gutenberg.org/cache/epub/${raw.id}/pg${raw.id}.txt`;
 
   const epubUrl = formats["application/epub+zip"] ?? null;
 
@@ -72,7 +81,7 @@ function normalizeBook(raw: RawGutendexBook): PublicBook {
     coverImage,
     summary:
       raw.summaries?.[0] ||
-      "A complete public-domain novel available to read free in full text.",
+      "A complete public-domain novel available to read free in full text on Project Ashabi.",
     subjects: cleanSubjects(raw.subjects, raw.bookshelves),
     downloadCount: raw.download_count ?? 12000,
     readHtmlUrl,
@@ -82,7 +91,69 @@ function normalizeBook(raw: RawGutendexBook): PublicBook {
   };
 }
 
-export async function getFeaturedBooks(topic = "fantasy"): Promise<PublicBook[]> {
+function parseFullTextIntoChapters(
+  rawText: string,
+  fallbackSummary: string,
+): BookChapter[] {
+  const startMatch = rawText.indexOf("*** START OF");
+  const endMatch = rawText.indexOf("*** END OF");
+
+  const bodyStart =
+    startMatch !== -1 ? rawText.indexOf("\n", startMatch) + 1 : 0;
+  const bodyEnd = endMatch !== -1 ? endMatch : rawText.length;
+
+  const cleanBody = rawText.slice(bodyStart, bodyEnd);
+
+  const allParagraphs = cleanBody
+    .split(/\r?\n\r?\n+/)
+    .map((p) => p.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim())
+    .filter((p) => p.length > 35);
+
+  if (allParagraphs.length === 0) {
+    return [
+      {
+        number: 1,
+        title: "Chapter 1 — Opening",
+        paragraphs: [fallbackSummary],
+      },
+    ];
+  }
+
+  const chapters: BookChapter[] = [];
+  const PARAGRAPHS_PER_CHAPTER = 24;
+  const maxChapters = 45;
+
+  for (
+    let i = 0;
+    i < allParagraphs.length && chapters.length < maxChapters;
+    i += PARAGRAPHS_PER_CHAPTER
+  ) {
+    const slice = allParagraphs.slice(i, i + PARAGRAPHS_PER_CHAPTER);
+    const chNum = chapters.length + 1;
+
+    // Detect if the first paragraph in this slice looks like a chapter heading
+    const firstPara = slice[0] ?? "";
+    const headingMatch = firstPara.match(
+      /^(CHAPTER|BOOK|PART|LETTER|ACT|SCENE|STAVE)\s+([IVXLCDM0-9]+[:.\s-]*.*)/i,
+    );
+
+    const title = headingMatch
+      ? firstPara.slice(0, 68)
+      : `Chapter ${chNum}`;
+
+    chapters.push({
+      number: chNum,
+      title,
+      paragraphs: slice,
+    });
+  }
+
+  return chapters;
+}
+
+export async function getFeaturedBooks(
+  topic = "fantasy",
+): Promise<PublicBook[]> {
   try {
     const res = await fetch(
       `${GUTENDEX_ENDPOINT}?topic=${encodeURIComponent(topic)}&sort=popular`,
@@ -118,9 +189,11 @@ export async function searchPublicBooks(params: {
   }
 }
 
-export async function getPublicBookById(
-  id: number,
-): Promise<{ book: PublicBook; excerptParagraphs: string[] } | null> {
+export async function getPublicBookById(id: number): Promise<{
+  book: PublicBook;
+  chapters: BookChapter[];
+  excerptParagraphs: string[];
+} | null> {
   try {
     const res = await fetch(`${GUTENDEX_ENDPOINT}/${id}`, {
       next: { revalidate: 3600 },
@@ -134,40 +207,57 @@ export async function getPublicBookById(
     }
     if (!book) return null;
 
-    let excerptParagraphs: string[] = [];
-    if (book.readTextUrl) {
+    let chapters: BookChapter[] = [];
+    const textCandidateUrls = [
+      book.readTextUrl,
+      `https://www.gutenberg.org/cache/epub/${book.id}/pg${book.id}.txt`,
+    ].filter((u): u is string => Boolean(u));
+
+    for (const textUrl of textCandidateUrls) {
       try {
-        const textRes = await fetch(book.readTextUrl, {
+        const textRes = await fetch(textUrl, {
           next: { revalidate: 3600 },
         });
         if (textRes.ok) {
           const fullText = await textRes.text();
-          const startMarker = fullText.indexOf("*** START OF");
-          const bodyStart =
-            startMarker !== -1
-              ? fullText.indexOf("\n", startMarker) + 1
-              : 0;
-          const cleanSlice = fullText.slice(bodyStart, bodyStart + 18000);
-          excerptParagraphs = cleanSlice
-            .split(/\r?\n\r?\n/)
-            .map((p) => p.replace(/\r?\n/g, " ").trim())
-            .filter((p) => p.length > 60)
-            .slice(0, 18);
+          chapters = parseFullTextIntoChapters(fullText, book.summary);
+          if (chapters.length > 0) break;
         }
       } catch {
-        // Use summary fallback if plain text stream is unavailable
+        // Try next candidate URL
       }
     }
 
-    if (excerptParagraphs.length === 0) {
-      excerptParagraphs = [book.summary];
+    if (chapters.length === 0) {
+      chapters = [
+        {
+          number: 1,
+          title: "Chapter 1 — Opening",
+          paragraphs: [book.summary],
+        },
+      ];
     }
 
-    return { book, excerptParagraphs };
+    return {
+      book,
+      chapters,
+      excerptParagraphs: chapters[0]?.paragraphs ?? [book.summary],
+    };
   } catch {
     const fallback = FALLBACK_BOOKS.find((b) => b.id === id);
     if (!fallback) return null;
-    return { book: fallback, excerptParagraphs: [fallback.summary] };
+    const fallbackChapters: BookChapter[] = [
+      {
+        number: 1,
+        title: "Chapter 1 — Opening",
+        paragraphs: [fallback.summary],
+      },
+    ];
+    return {
+      book: fallback,
+      chapters: fallbackChapters,
+      excerptParagraphs: [fallback.summary],
+    };
   }
 }
 
@@ -182,6 +272,7 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     subjects: ["Science Fiction", "Gothic Fiction", "Classic"],
     downloadCount: 98420,
     readHtmlUrl: "https://www.gutenberg.org/ebooks/84.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/84/pg84.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/84",
   },
   {
@@ -194,6 +285,7 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     subjects: ["Science Fiction", "Time Travel", "Dystopian"],
     downloadCount: 41200,
     readHtmlUrl: "https://www.gutenberg.org/ebooks/35.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/35/pg35.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/35",
   },
   {
@@ -207,6 +299,7 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     subjects: ["Adventure", "Science Fiction", "Sea Stories"],
     downloadCount: 38900,
     readHtmlUrl: "https://www.gutenberg.org/ebooks/164.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/164/pg164.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/164",
   },
   {
@@ -220,6 +313,7 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     subjects: ["Horror", "Supernatural", "Gothic"],
     downloadCount: 64100,
     readHtmlUrl: "https://www.gutenberg.org/ebooks/345.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/345/pg345.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/345",
   },
   {
@@ -232,6 +326,7 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     subjects: ["Planetary Romance", "Sci-Fi", "Adventure"],
     downloadCount: 29500,
     readHtmlUrl: "https://www.gutenberg.org/ebooks/62.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/62/pg62.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/62",
   },
   {
@@ -245,6 +340,7 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     subjects: ["Mythology", "Epic", "Adventure"],
     downloadCount: 53400,
     readHtmlUrl: "https://www.gutenberg.org/ebooks/1727.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/1727/pg1727.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/1727",
   },
 ];

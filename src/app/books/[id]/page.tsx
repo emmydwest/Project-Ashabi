@@ -6,10 +6,10 @@ import {
   ArrowLeft,
   BookOpen,
   Download,
-  ExternalLink,
   Feather,
-  Library,
+  Layers,
 } from "lucide-react";
+import { BookChapterReader } from "@/components/reader/book-chapter-reader";
 import { getPublicBookById, getFeaturedBooks } from "@/lib/books";
 
 interface PageProps {
@@ -41,7 +41,7 @@ export default async function BookReaderPage({ params }: PageProps) {
   ]);
 
   if (!data) notFound();
-  const { book, excerptParagraphs } = data;
+  const { book, chapters } = data;
 
   return (
     <main
@@ -58,7 +58,7 @@ export default async function BookReaderPage({ params }: PageProps) {
           <span>Back to Books &amp; Novels</span>
         </Link>
         <span className="text-xs text-[var(--text-muted)]">
-          Public Domain Literary Archive · Free Full Text
+          Full In-App Novel Reader · {chapters.length} Chapters
         </span>
       </nav>
 
@@ -80,7 +80,11 @@ export default async function BookReaderPage({ params }: PageProps) {
         <div className="md:col-span-8 lg:col-span-9 space-y-5">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="neu-pill-active px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
-              Novel · Full Text
+              Complete Novel · In-App Reader
+            </span>
+            <span className="neu-pill inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--gold-bright)]">
+              <Layers className="w-3.5 h-3.5" />
+              <span>{chapters.length} Chapters Available</span>
             </span>
             <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--ivory)]">
               {book.downloadCount.toLocaleString()} Readers
@@ -115,28 +119,17 @@ export default async function BookReaderPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <a
               href="#chapter-reader"
-              className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold"
+              className="neu-pill-active inline-flex items-center gap-2 px-6 py-3.5 rounded-full text-xs sm:text-sm font-extrabold"
             >
               <BookOpen className="w-4 h-4" />
-              <span>Start Reading Below</span>
+              <span>Read Full Novel Below ({chapters.length} Chapters)</span>
             </a>
-            {book.readHtmlUrl ? (
-              <a
-                href={book.readHtmlUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
-              >
-                <ExternalLink className="w-4 h-4 text-[var(--gold-bright)]" />
-                <span>Open Complete HTML Edition</span>
-              </a>
-            ) : null}
             {book.epubUrl ? (
               <a
                 href={book.epubUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+                className="neu-pill inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
               >
                 <Download className="w-4 h-4 text-[var(--gold-bright)]" />
                 <span>Download EPUB</span>
@@ -146,54 +139,18 @@ export default async function BookReaderPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* In-App Prose Reader Surface */}
-      <section
-        id="chapter-reader"
-        aria-label="Book reading view"
-        className="liquid-glass rounded-[32px] p-6 sm:p-12 lg:p-16 max-w-4xl mx-auto space-y-6"
-      >
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-2.5">
-            <Library className="w-5 h-5 text-[var(--gold-bright)]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[var(--gold-bright)]">
-              Opening Chapters Preview
-            </span>
-          </div>
-          <span className="text-xs text-[var(--text-muted)]">
-            {book.title}
-          </span>
-        </div>
-
-        <div className="space-y-5 font-serif text-lg sm:text-xl leading-[1.85] text-[var(--cream)]">
-          {excerptParagraphs.map((paragraph, idx) => (
-            <p key={idx} className="m-0">
-              {paragraph}
-            </p>
-          ))}
-        </div>
-
-        {book.readHtmlUrl ? (
-          <div className="pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] m-0">
-              Continue reading all remaining chapters in the complete unabridged
-              edition.
-            </p>
-            <a
-              href={book.readHtmlUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold"
-            >
-              <span>Read Full Unabridged Book</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        ) : null}
-      </section>
+      {/* Interactive Multi-Chapter Novel Reader */}
+      <BookChapterReader
+        bookTitle={book.title}
+        bookAuthor={book.author}
+        chapters={chapters}
+      />
 
       {/* More Books Shelf */}
       <section className="space-y-6">
-        <h2 className="text-2xl font-extrabold m-0">More Free Novels &amp; Books</h2>
+        <h2 className="text-2xl font-extrabold m-0">
+          More Free Novels &amp; Books
+        </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
           {moreBooks
             .filter((b) => b.id !== book.id)
