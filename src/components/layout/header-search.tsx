@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Icon } from "@/components/icons";
+import { ArrowRight, Search } from "lucide-react";
 import type { AniListMedia } from "@/lib/anilist";
 
 export function HeaderSearch() {
@@ -74,9 +74,9 @@ export function HeaderSearch() {
       <form
         onSubmit={handleSubmit}
         role="search"
-        className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[rgba(12,18,24,0.9)] pl-3.5 pr-1.5 py-1 focus-within:border-[var(--border-gold)] transition-all"
+        className="neu-inset flex items-center gap-1.5 rounded-full pl-3.5 pr-1.5 py-1 focus-within:border-[var(--border-gold)] transition-all"
       >
-        <Icon name="search" size={16} className="text-[var(--text-muted)] shrink-0" />
+        <Search className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
         <input
           type="search"
           value={query}
@@ -93,21 +93,21 @@ export function HeaderSearch() {
               setOpen(true);
             }
           }}
-          placeholder="Search Manhwa, Manga, Anime, Genres…"
-          aria-label="Search Manhwa, Manga, Anime, or Genres"
+          placeholder="Search comics, manhwa, books…"
+          aria-label="Search comics, manhwa, manga, anime, or books"
           className="w-full bg-transparent text-xs sm:text-sm text-[var(--text-strong)] placeholder:text-[var(--text-muted)] focus:outline-none px-1.5 py-1"
         />
         <button
           type="submit"
-          className="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-[var(--gold)] text-[#140c02] hover:bg-[var(--gold-bright)] transition-all cursor-pointer shrink-0"
+          className="neu-pill-active px-3.5 py-1.5 rounded-full text-xs font-extrabold cursor-pointer shrink-0"
         >
           {loading ? "…" : "Search"}
         </button>
       </form>
 
-      {/* Instant Live Search Dropdown */}
+      {/* Instant Liquid Glass Dropdown */}
       {open && query.trim().length >= 2 ? (
-        <div className="absolute left-0 right-0 top-full mt-2 z-[90] rounded-[20px] border border-[rgba(245,189,67,0.35)] bg-[#080d13] p-2.5 shadow-[0_24px_60px_rgba(0,0,0,0.85)] space-y-1.5">
+        <div className="liquid-glass absolute left-0 right-0 top-full mt-2.5 z-[90] rounded-[22px] p-2.5 space-y-1.5">
           {results.length > 0 ? (
             <>
               {results.map((item) => (
@@ -115,9 +115,9 @@ export function HeaderSearch() {
                   key={item.id}
                   href={`/anilist/${item.id}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 p-2 rounded-[14px] hover:bg-white/[0.05] transition-all"
+                  className="flex items-center gap-3 p-2 rounded-[14px] hover:bg-white/[0.06] transition-all"
                 >
-                  <div className="relative w-10 h-14 rounded-[8px] overflow-hidden shrink-0 border border-white/10">
+                  <div className="relative w-10 h-14 rounded-lg overflow-hidden shrink-0 border border-white/10">
                     <Image
                       src={item.coverImage}
                       alt={item.title}
@@ -127,43 +127,28 @@ export function HeaderSearch() {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-extrabold uppercase text-[var(--gold-bright)]">
-                        {item.category}
-                      </span>
-                      {item.averageScore ? (
-                        <span className="text-[10px] font-bold text-[#68e3ab]">
-                          · {item.averageScore}%
-                        </span>
-                      ) : null}
-                      {item.trailer ? (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)]">
-                          Trailer
-                        </span>
-                      ) : null}
-                    </div>
+                    <span className="text-[10px] font-bold uppercase text-[var(--gold)] block">
+                      {item.category}
+                      {item.averageScore ? ` · ${item.averageScore}%` : ""}
+                    </span>
                     <p className="text-xs sm:text-sm font-bold text-[var(--text-strong)] truncate m-0">
                       {item.title}
                     </p>
-                    <p className="text-[11px] text-[var(--text-muted)] truncate m-0">
-                      {item.genres.slice(0, 3).join(" · ")}
-                    </p>
                   </div>
-                  <Icon name="arrow" size={14} className="text-[var(--gold-bright)] shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-[var(--gold-bright)] shrink-0" />
                 </Link>
               ))}
               <Link
                 href={`/discover?q=${encodeURIComponent(query.trim())}`}
                 onClick={() => setOpen(false)}
-                className="block text-center py-2 rounded-[12px] text-xs font-bold text-[var(--gold-bright)] bg-white/[0.03] hover:bg-white/[0.07]"
+                className="block text-center py-2 rounded-xl text-xs font-bold text-[var(--gold-bright)] bg-white/[0.04] hover:bg-white/[0.08]"
               >
                 See all results for “{query.trim()}” →
               </Link>
             </>
           ) : !loading ? (
             <div className="p-4 text-center text-xs text-[var(--text-muted)]">
-              No titles found for “{query.trim()}”. Press Search to browse all
-              categories.
+              No titles found for “{query.trim()}”. Press Search to browse all.
             </div>
           ) : null}
         </div>

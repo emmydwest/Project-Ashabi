@@ -1,0 +1,230 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  BookOpen,
+  Download,
+  ExternalLink,
+  Feather,
+  Library,
+} from "lucide-react";
+import { getPublicBookById, getFeaturedBooks } from "@/lib/books";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) return { title: "Book Not Found" };
+  const data = await getPublicBookById(numericId);
+  if (!data) return { title: "Book Not Found" };
+  return {
+    title: `${data.book.title} — by ${data.book.author}`,
+    description: data.book.summary.slice(0, 160),
+  };
+}
+
+export default async function BookReaderPage({ params }: PageProps) {
+  const { id } = await params;
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) notFound();
+
+  const [data, moreBooks] = await Promise.all([
+    getPublicBookById(numericId),
+    getFeaturedBooks("science fiction"),
+  ]);
+
+  if (!data) notFound();
+  const { book, excerptParagraphs } = data;
+
+  return (
+    <main
+      id="main"
+      className="max-w-6xl mx-auto px-4 sm:px-8 py-10 pb-24 space-y-14"
+    >
+      {/* Top Back Navigation */}
+      <nav aria-label="Breadcrumb" className="flex items-center justify-between">
+        <Link
+          href="/?explore=1#books-shelf"
+          className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
+        >
+          <ArrowLeft className="w-4 h-4 text-[var(--gold-bright)]" />
+          <span>Back to Books &amp; Novels</span>
+        </Link>
+        <span className="text-xs text-[var(--text-muted)]">
+          Public Domain Literary Archive · Free Full Text
+        </span>
+      </nav>
+
+      {/* Book Hero Card */}
+      <section className="liquid-glass-gold rounded-[32px] p-6 sm:p-10 lg:p-12 grid md:grid-cols-12 gap-8 items-center">
+        <div className="md:col-span-4 lg:col-span-3 flex justify-center">
+          <div className="relative w-48 sm:w-56 aspect-[2/3] rounded-[20px] overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
+            <Image
+              src={book.coverImage}
+              alt={book.title}
+              fill
+              priority
+              sizes="224px"
+              className="object-cover"
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-8 lg:col-span-9 space-y-5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="neu-pill-active px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
+              Novel · Full Text
+            </span>
+            <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--ivory)]">
+              {book.downloadCount.toLocaleString()} Readers
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[var(--text-strong)] leading-tight m-0">
+              {book.title}
+            </h1>
+            <p className="text-base sm:text-lg text-[var(--gold-bright)] font-semibold flex items-center gap-2 m-0">
+              <Feather className="w-4 h-4" />
+              <span>{book.author}</span>
+            </p>
+          </div>
+
+          <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed max-w-3xl m-0">
+            {book.summary}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {book.subjects.map((subject) => (
+              <span
+                key={subject}
+                className="neu-inset px-3 py-1 rounded-full text-xs text-[var(--ivory)]"
+              >
+                {subject}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <a
+              href="#chapter-reader"
+              className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Start Reading Below</span>
+            </a>
+            {book.readHtmlUrl ? (
+              <a
+                href={book.readHtmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+              >
+                <ExternalLink className="w-4 h-4 text-[var(--gold-bright)]" />
+                <span>Open Complete HTML Edition</span>
+              </a>
+            ) : null}
+            {book.epubUrl ? (
+              <a
+                href={book.epubUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+              >
+                <Download className="w-4 h-4 text-[var(--gold-bright)]" />
+                <span>Download EPUB</span>
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {/* In-App Prose Reader Surface */}
+      <section
+        id="chapter-reader"
+        aria-label="Book reading view"
+        className="liquid-glass rounded-[32px] p-6 sm:p-12 lg:p-16 max-w-4xl mx-auto space-y-6"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <Library className="w-5 h-5 text-[var(--gold-bright)]" />
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--gold-bright)]">
+              Opening Chapters Preview
+            </span>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">
+            {book.title}
+          </span>
+        </div>
+
+        <div className="space-y-5 font-serif text-lg sm:text-xl leading-[1.85] text-[var(--cream)]">
+          {excerptParagraphs.map((paragraph, idx) => (
+            <p key={idx} className="m-0">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        {book.readHtmlUrl ? (
+          <div className="pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] m-0">
+              Continue reading all remaining chapters in the complete unabridged
+              edition.
+            </p>
+            <a
+              href={book.readHtmlUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold"
+            >
+              <span>Read Full Unabridged Book</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        ) : null}
+      </section>
+
+      {/* More Books Shelf */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-extrabold m-0">More Free Novels &amp; Books</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
+          {moreBooks
+            .filter((b) => b.id !== book.id)
+            .slice(0, 6)
+            .map((item) => (
+              <Link
+                key={item.id}
+                href={`/books/${item.id}`}
+                className="group space-y-2.5"
+              >
+                <div className="neu-card relative aspect-[2/3] w-full rounded-[18px] overflow-hidden">
+                  <Image
+                    src={item.coverImage}
+                    alt={item.title}
+                    fill
+                    sizes="180px"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="px-1">
+                  <h3 className="text-sm font-bold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] line-clamp-1 m-0">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] truncate m-0">
+                    {item.author}
+                  </p>
+                </div>
+              </Link>
+            ))}
+        </div>
+      </section>
+    </main>
+  );
+}

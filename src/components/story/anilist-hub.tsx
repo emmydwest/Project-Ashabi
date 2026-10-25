@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Icon } from "@/components/icons";
+import { Clapperboard, Search, X } from "lucide-react";
 import {
   ANILIST_GENRES,
   type AniListCategory,
@@ -19,23 +19,10 @@ interface Props {
 const TABS: {
   id: AniListCategory;
   label: string;
-  badge: string;
 }[] = [
-  {
-    id: "MANHWA",
-    label: "Trending Manhwa",
-    badge: "KR · WEBTOON",
-  },
-  {
-    id: "MANGA",
-    label: "Trending Manga",
-    badge: "JP · MANGA",
-  },
-  {
-    id: "ANIME",
-    label: "Trending Anime",
-    badge: "TV · ANIME",
-  },
+  { id: "MANHWA", label: "Manhwa" },
+  { id: "MANGA", label: "Manga" },
+  { id: "ANIME", label: "Anime" },
 ];
 
 export function AniListHub({ feed }: Props) {
@@ -47,7 +34,6 @@ export function AniListHub({ feed }: Props) {
     null,
   );
   const [loading, setLoading] = useState<boolean>(false);
-  const [spotlightIndex, setSpotlightIndex] = useState<number>(0);
   const [activeTrailer, setActiveTrailer] = useState<{
     title: string;
     trailer: AniListTrailer;
@@ -59,21 +45,6 @@ export function AniListHub({ feed }: Props) {
     return feed.anime;
   }, [activeTab, feed]);
 
-  // Listen for custom genre jump events from the top homepage genre strip
-  useEffect(() => {
-    const onSelectGenre = (event: Event) => {
-      const custom = event as CustomEvent<string>;
-      if (custom.detail) {
-        setSelectedGenre(custom.detail);
-        setSpotlightIndex(0);
-      }
-    };
-    window.addEventListener("ashabi-select-genre", onSelectGenre);
-    return () =>
-      window.removeEventListener("ashabi-select-genre", onSelectGenre);
-  }, []);
-
-  // Fetch live from AniList whenever a specific genre or search query is active
   useEffect(() => {
     if (selectedGenre === "All" && !submittedSearch) {
       return;
@@ -97,11 +68,9 @@ export function AniListHub({ feed }: Props) {
         const data = await res.json();
         if (!cancelled) {
           setRemoteResults(data.results ?? []);
-          setSpotlightIndex(0);
         }
       } catch {
         if (!cancelled) {
-          // Fallback to local filtering
           const fallback = baseItemsForTab.filter((item) => {
             if (
               selectedGenre !== "All" &&
@@ -136,56 +105,34 @@ export function AniListHub({ feed }: Props) {
       ? baseItemsForTab
       : (remoteResults ?? baseItemsForTab);
 
-  const safeSpotlightIndex =
-    spotlightIndex < displayedItems.length ? spotlightIndex : 0;
-  const spotlight = displayedItems[safeSpotlightIndex] ?? baseItemsForTab[0];
-
-  function handleTabChange(nextTab: AniListCategory) {
-    setActiveTab(nextTab);
-    setSpotlightIndex(0);
-  }
-
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmittedSearch(searchInput.trim());
-    setSpotlightIndex(0);
   }
 
   return (
     <section
       id="anilist-hub-section"
       aria-labelledby="anilist-hub-heading"
-      className="rounded-[30px] border border-[rgba(245,189,67,0.3)] bg-gradient-to-b from-[#0b131b] via-[#070b10] to-[#05070a] p-5 sm:p-8 lg:p-10 space-y-7 shadow-[0_28px_80px_rgba(0,0,0,0.65)]"
+      className="space-y-8"
     >
-      {/* Top Header + Category Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 border-b border-[var(--border)] pb-6">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-[var(--gold)] text-[#140c02]">
-              <Icon name="flame" size={13} />
-              <span>Live AniList Pulse</span>
-            </span>
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/[0.06] text-[var(--ivory)] border border-white/10">
-              Manhwa · Manga · Anime · Official Trailers
-            </span>
-          </div>
+      {/* Clean Header + Tactile Neumorphic Category Switcher */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1.5">
+          <p className="eyebrow m-0">Explore By Format &amp; Genre</p>
           <h2
             id="anilist-hub-heading"
             className="text-2xl sm:text-4xl font-extrabold tracking-tight m-0"
           >
-            Global Manhwa, Manga &amp; Anime Charts
+            Trending Series Catalog
           </h2>
-          <p className="text-sm text-[var(--text-muted)] max-w-2xl m-0">
-            Filter live by genre (<strong className="text-[var(--ivory)]">Sci-Fi, Fantasy, Action, Romance</strong>),
-            search any title across AniList, or watch official trailers directly.
-          </p>
         </div>
 
-        {/* Category Tabs */}
+        {/* Neumorphic Segmented Control */}
         <div
           role="tablist"
-          aria-label="AniList media categories"
-          className="grid grid-cols-3 gap-2 bg-[#05080c] p-1.5 rounded-[18px] border border-[var(--border)] shrink-0"
+          aria-label="Media categories"
+          className="neu-inset p-1.5 rounded-full inline-flex items-center gap-1.5 self-start"
         >
           {TABS.map((tab) => {
             const active = tab.id === activeTab;
@@ -195,44 +142,30 @@ export function AniListHub({ feed }: Props) {
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => handleTabChange(tab.id)}
+                onClick={() => setActiveTab(tab.id)}
                 className={
-                  "px-3.5 sm:px-5 py-2.5 rounded-[14px] text-left transition-all cursor-pointer " +
+                  "px-6 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition-all cursor-pointer " +
                   (active
-                    ? "bg-gradient-to-br from-[#f5bd43] to-[#d99116] text-[#140c02] shadow-[var(--gold-glow)]"
-                    : "bg-transparent text-[var(--text)] hover:bg-white/[0.04]")
+                    ? "neu-pill-active"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-strong)]")
                 }
               >
-                <span
-                  className={
-                    "block text-[10px] font-extrabold uppercase tracking-wider " +
-                    (active ? "text-[#140c02]/80" : "text-[var(--gold-bright)]")
-                  }
-                >
-                  {tab.badge}
-                </span>
-                <span className="block text-xs sm:text-sm font-extrabold whitespace-nowrap">
-                  {tab.label}
-                </span>
+                {tab.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Live Search Bar + Genre Filter Strip */}
-      <div className="space-y-4">
+      {/* Liquid Glass Filter & Search Bar */}
+      <div className="liquid-glass rounded-[24px] p-4 sm:p-5 space-y-4">
         <form
           onSubmit={handleSearchSubmit}
           role="search"
-          className="flex flex-wrap sm:flex-nowrap items-center gap-2.5"
+          className="flex flex-wrap sm:flex-nowrap items-center gap-3"
         >
-          <div className="relative flex-1 min-w-[220px] flex items-center rounded-full border border-[var(--border)] bg-[#060a0f] px-4 py-2 focus-within:border-[var(--border-gold)]">
-            <Icon
-              name="search"
-              size={16}
-              className="text-[var(--text-muted)] mr-2.5 shrink-0"
-            />
+          <div className="neu-inset flex-1 min-w-[220px] flex items-center rounded-full px-4 py-2.5 focus-within:border-[var(--border-gold)]">
+            <Search className="w-4 h-4 text-[var(--text-muted)] mr-3 shrink-0" />
             <input
               type="search"
               value={searchInput}
@@ -242,16 +175,19 @@ export function AniListHub({ feed }: Props) {
                   setSubmittedSearch("");
                 }
               }}
-              placeholder={`Search ${activeTab.toLowerCase()} titles (e.g. Solo Leveling, Tower of God, One Piece)…`}
-              aria-label="Search AniList catalog"
+              placeholder={`Search ${activeTab.toLowerCase()} titles (e.g. Solo Leveling, Omniscient Reader, One Piece)…`}
+              aria-label="Search series"
               className="w-full bg-transparent text-xs sm:text-sm text-[var(--text-strong)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
           </div>
-          <button type="submit" className="button primary text-xs px-5 py-2.5 cursor-pointer">
-            <Icon name="search" size={15} />
+          <button
+            type="submit"
+            className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs font-extrabold cursor-pointer shrink-0"
+          >
+            <Search className="w-3.5 h-3.5" />
             <span>{loading ? "Searching…" : "Search"}</span>
           </button>
-          {(selectedGenre !== "All" || submittedSearch) ? (
+          {selectedGenre !== "All" || submittedSearch ? (
             <button
               type="button"
               onClick={() => {
@@ -260,304 +196,92 @@ export function AniListHub({ feed }: Props) {
                 setSubmittedSearch("");
                 setRemoteResults(null);
               }}
-              className="button secondary text-xs px-4 py-2.5 cursor-pointer"
+              className="neu-pill px-5 py-3 rounded-full text-xs font-bold text-[var(--ivory)] cursor-pointer"
             >
               Reset
             </button>
           ) : null}
         </form>
 
-        {/* Genre Sub-Filter Pills (Queries Live AniList API for Sci-Fi, Fantasy, etc.) */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {ANILIST_GENRES.map((genre) => {
-              const active = selectedGenre === genre;
-              return (
-                <button
-                  key={genre}
-                  type="button"
-                  onClick={() => {
-                    setSelectedGenre(genre);
-                    setSpotlightIndex(0);
-                  }}
-                  className={
-                    "px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer " +
-                    (active
-                      ? "border-[var(--border-gold)] bg-[rgba(245,189,67,0.2)] text-[var(--gold-bright)] shadow-[var(--gold-glow)]"
-                      : "border-[var(--border)] bg-white/[0.03] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:border-white/25")
-                  }
-                >
-                  {genre}
-                </button>
-              );
-            })}
-          </div>
-
-          <span className="text-xs text-[var(--text-muted)]">
-            {loading ? (
-              <span className="text-[var(--gold-bright)] font-semibold">
-                Loading live {selectedGenre !== "All" ? selectedGenre : ""}{" "}
-                {activeTab.toLowerCase()}…
-              </span>
-            ) : (
-              <>
-                Showing{" "}
-                <strong className="text-[var(--ivory)]">
-                  {displayedItems.length}
-                </strong>{" "}
-                {selectedGenre !== "All" ? `${selectedGenre} ` : ""}
-                {activeTab.toLowerCase()} titles
-              </>
-            )}
-          </span>
+        {/* Clean Genre Strip */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {ANILIST_GENRES.map((genre) => {
+            const active = selectedGenre === genre;
+            return (
+              <button
+                key={genre}
+                type="button"
+                onClick={() => setSelectedGenre(genre)}
+                className={
+                  "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer " +
+                  (active
+                    ? "neu-pill-active"
+                    : "neu-pill text-[var(--text-muted)]")
+                }
+              >
+                {genre}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Featured Spotlight Banner for Selected Category */}
-      {spotlight ? (
-        <div className="relative rounded-[24px] overflow-hidden border border-[rgba(245,189,67,0.32)] bg-[#060a0e]">
-          <div className="absolute inset-0">
-            <Image
-              src={spotlight.bannerImage || spotlight.coverImage}
-              alt={spotlight.title}
-              fill
-              sizes="(max-width:1280px) 100vw, 1400px"
-              className="object-cover opacity-30 scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#05070a] via-[#05070a]/90 to-[#05070a]/45" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#05070a] via-transparent to-black/40" />
-          </div>
-
-          <div className="relative z-10 grid lg:grid-cols-12 gap-6 p-5 sm:p-7 items-center">
-            <div className="lg:col-span-8 space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider bg-[var(--gold)] text-[#140c02]">
-                  #{safeSpotlightIndex + 1} in{" "}
-                  {selectedGenre !== "All" ? `${selectedGenre} ` : ""}
-                  {activeTab}
-                </span>
-                {spotlight.averageScore ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[#48c78e]/20 text-[#68e3ab] border border-[#48c78e]/40">
-                    <Icon name="star" size={13} />
-                    <span>{spotlight.averageScore}% Score</span>
-                  </span>
-                ) : null}
-                <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-white/10 text-[var(--ivory)]">
-                  {spotlight.status}
-                </span>
-                {spotlight.trailer ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)] border border-[var(--border-gold)]">
-                    <Icon name="play" size={12} />
-                    <span>Official Trailer Available</span>
-                  </span>
-                ) : null}
-              </div>
-
-              <div>
-                {spotlight.nativeTitle ? (
-                  <p className="text-xs font-bold tracking-widest text-[var(--gold-bright)] uppercase mb-1">
-                    {spotlight.nativeTitle}
-                  </p>
-                ) : null}
-                <h3 className="font-serif text-2xl sm:text-4xl font-bold text-[var(--text-strong)] leading-tight m-0">
-                  {spotlight.title}
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1 mb-0">
-                  Creator / Studio:{" "}
-                  <strong className="text-[var(--ivory)]">
-                    {spotlight.authorName}
-                  </strong>{" "}
-                  {spotlight.seasonYear ? `· ${spotlight.seasonYear}` : ""}
-                </p>
-              </div>
-
-              <p className="text-sm text-[var(--text)] line-clamp-3 max-w-2xl m-0">
-                {spotlight.description}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {spotlight.genres.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setSelectedGenre(g)}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/[0.06] border border-white/10 text-[var(--ivory)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] cursor-pointer"
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+      {/* Clean WEBTOON / Comic Republic Style Poster Grid */}
+      {displayedItems.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 sm:gap-6">
+          {displayedItems.slice(0, 12).map((item) => (
+            <div key={item.id} className="group flex flex-col gap-3">
+              <div className="neu-card relative aspect-[2/3] w-full rounded-[20px] overflow-hidden">
                 <Link
-                  href={`/anilist/${spotlight.id}`}
-                  className="button primary"
+                  href={`/anilist/${item.id}`}
+                  className="block w-full h-full"
                 >
-                  <Icon name="book" size={17} />
-                  <span>Open Series Hub &amp; Details</span>
+                  <Image
+                    src={item.coverImage}
+                    alt={item.title}
+                    fill
+                    sizes="(max-width:640px) 46vw, (max-width:1024px) 24vw, 16vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                 </Link>
-                {spotlight.trailer ? (
+
+                {item.trailer ? (
                   <button
                     type="button"
                     onClick={() =>
                       setActiveTrailer({
-                        title: spotlight.title,
-                        trailer: spotlight.trailer!,
+                        title: item.title,
+                        trailer: item.trailer!,
                       })
                     }
-                    className="button secondary cursor-pointer"
+                    className="liquid-glass absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-[var(--gold-bright)] hover:text-white cursor-pointer"
                   >
-                    <Icon name="play" size={16} />
-                    <span>Watch Official Trailer</span>
+                    <Clapperboard className="w-3 h-3" />
+                    <span>Trailer</span>
                   </button>
                 ) : null}
-                <a
-                  href={spotlight.siteUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="button secondary"
-                >
-                  <Icon name="globe" size={16} />
-                  <span>AniList</span>
-                </a>
+              </div>
+
+              <div className="px-1 space-y-0.5">
+                <p className="text-[11px] font-bold text-[var(--gold)] truncate m-0">
+                  {item.genres[0] || item.category}
+                  {item.averageScore ? ` · ${item.averageScore}%` : ""}
+                </p>
+                <Link href={`/anilist/${item.id}`}>
+                  <h3 className="text-sm sm:text-base font-bold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] truncate m-0">
+                    {item.title}
+                  </h3>
+                </Link>
+                <p className="text-xs text-[var(--text-muted)] truncate m-0">
+                  {item.authorName}
+                </p>
               </div>
             </div>
-
-            <div className="lg:col-span-4 flex justify-center lg:justify-end">
-              <Link
-                href={`/anilist/${spotlight.id}`}
-                className="group relative w-44 sm:w-52 aspect-[2/3] rounded-[18px] overflow-hidden border-2 border-[rgba(245,189,67,0.45)] shadow-[0_20px_50px_rgba(0,0,0,0.75)] transition-transform hover:-translate-y-1"
-              >
-                <Image
-                  src={spotlight.coverImage}
-                  alt={spotlight.title}
-                  fill
-                  sizes="220px"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between text-[11px] font-bold text-[var(--ivory)]">
-                  <span className="px-2 py-0.5 rounded bg-black/75 border border-white/15">
-                    {spotlight.countryOfOrigin === "KR"
-                      ? "KR Manhwa"
-                      : spotlight.category}
-                  </span>
-                  {spotlight.popularity ? (
-                    <span className="px-2 py-0.5 rounded bg-[var(--gold)] text-[#140c02] font-extrabold">
-                      {Math.round(spotlight.popularity / 1000)}k fans
-                    </span>
-                  ) : null}
-                </div>
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Comic Poster Shelf */}
-      {displayedItems.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
-          {displayedItems.slice(0, 15).map((item, idx) => {
-            const isHighlighted = item.id === spotlight?.id;
-            return (
-              <div
-                key={item.id}
-                onMouseEnter={() => setSpotlightIndex(idx)}
-                className={
-                  "group rounded-[20px] overflow-hidden border bg-[#070c12] flex flex-col justify-between transition-all hover:-translate-y-1.5 " +
-                  (isHighlighted
-                    ? "border-[var(--gold)] shadow-[0_14px_34px_rgba(245,189,67,0.18)]"
-                    : "border-[var(--border)] hover:border-[var(--border-gold)]")
-                }
-              >
-                <div className="relative aspect-[2/3] w-full overflow-hidden block">
-                  <Link href={`/anilist/${item.id}`} className="block w-full h-full">
-                    <Image
-                      src={item.coverImage}
-                      alt={item.title}
-                      fill
-                      sizes="(max-width:640px) 48vw, (max-width:1024px) 24vw, 19vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#070c12] via-transparent to-black/35" />
-                  </Link>
-
-                  <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-black/80 text-[var(--gold-bright)] border border-[rgba(245,189,67,0.4)] backdrop-blur-sm">
-                    #{idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
-                  </span>
-
-                  {item.averageScore ? (
-                    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-[#12281e]/90 text-[#68e3ab] border border-[#48c78e]/40">
-                      <Icon name="star" size={11} />
-                      <span>{item.averageScore}%</span>
-                    </span>
-                  ) : null}
-
-                  {/* Trailer Quick-Play Button on Poster */}
-                  {item.trailer ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActiveTrailer({
-                          title: item.title,
-                          trailer: item.trailer!,
-                        })
-                      }
-                      className="absolute bottom-10 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-black/85 text-[var(--gold-bright)] border border-[var(--border-gold)] hover:bg-[var(--gold)] hover:text-[#140c02] transition-all cursor-pointer"
-                    >
-                      <Icon name="play" size={10} />
-                      <span>Trailer</span>
-                    </button>
-                  ) : null}
-
-                  <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between gap-1 text-[10px] font-bold pointer-events-none">
-                    <span className="px-2 py-0.5 rounded bg-[var(--gold)] text-[#140c02] uppercase">
-                      {item.category}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-black/75 text-[var(--ivory)] border border-white/10 truncate">
-                      {item.chapters
-                        ? `${item.chapters} Ch`
-                        : item.episodes
-                          ? `${item.episodes} Ep`
-                          : item.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3.5 flex-1 flex flex-col justify-between gap-2.5">
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold-bright)] truncate">
-                      {item.genres.slice(0, 2).join(" · ") || item.category}
-                    </div>
-                    <Link href={`/anilist/${item.id}`}>
-                      <h3 className="text-sm sm:text-base font-extrabold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] line-clamp-1 m-0">
-                        {item.title}
-                      </h3>
-                    </Link>
-                    <p className="text-xs text-[var(--text-muted)] line-clamp-2 m-0">
-                      {item.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between gap-2 text-xs">
-                    <span className="text-[11px] text-[var(--text-muted)] truncate">
-                      {item.authorName}
-                    </span>
-                    <Link
-                      href={`/anilist/${item.id}`}
-                      className="inline-flex items-center gap-1 font-bold text-[var(--gold-bright)] shrink-0"
-                    >
-                      <span>Explore</span>
-                      <Icon name="arrow" size={13} />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          ))}
         </div>
       ) : (
-        <div className="rounded-[20px] border border-[var(--border)] bg-black/35 p-8 text-center space-y-3">
+        <div className="liquid-glass rounded-[24px] p-10 text-center space-y-3">
           <p className="text-base font-bold text-[var(--text-strong)] m-0">
             No {activeTab.toLowerCase()} titles matched that filter.
           </p>
@@ -569,42 +293,40 @@ export function AniListHub({ feed }: Props) {
               setSubmittedSearch("");
               setRemoteResults(null);
             }}
-            className="button secondary text-xs cursor-pointer"
+            className="neu-pill px-5 py-2.5 rounded-full text-xs font-bold text-[var(--ivory)] cursor-pointer"
           >
             Reset Filters
           </button>
         </div>
       )}
 
-      {/* Embedded Trailer Lightbox Modal */}
+      {/* Trailer Modal */}
       {activeTrailer ? (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`${activeTrailer.title} Official Trailer`}
-          className="fixed inset-0 z-[130] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-[130] bg-black/85 backdrop-blur-xl flex items-center justify-center p-4"
           onClick={() => setActiveTrailer(null)}
         >
           <div
-            className="w-full max-w-4xl rounded-[24px] border border-[var(--border-gold)] bg-[#070b10] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.95)]"
+            className="liquid-glass-gold w-full max-w-4xl rounded-[28px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[var(--gold)] text-[#140c02]">
-                  Official Trailer
-                </span>
-                <h3 className="text-sm sm:text-base font-extrabold text-[var(--text-strong)] truncate m-0">
-                  {activeTrailer.title}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <Clapperboard className="w-4 h-4 text-[var(--gold-bright)]" />
+                <h3 className="text-sm sm:text-base font-bold text-[var(--text-strong)] truncate m-0">
+                  {activeTrailer.title} — Official Trailer
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTrailer(null)}
                 aria-label="Close trailer"
-                className="w-8 h-8 rounded-full border border-white/15 bg-white/5 grid place-items-center text-[var(--ivory)] hover:border-[var(--border-gold)] cursor-pointer"
+                className="neu-pill w-8 h-8 rounded-full grid place-items-center text-[var(--ivory)] cursor-pointer"
               >
-                <Icon name="close" size={15} />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="relative aspect-video w-full bg-black">

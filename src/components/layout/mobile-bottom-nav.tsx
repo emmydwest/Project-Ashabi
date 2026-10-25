@@ -1,46 +1,54 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Icon, type IconName } from "@/components/icons";
+import { usePathname } from "next/navigation";
+import { BookOpen, Compass, Feather, Home, Library } from "lucide-react";
 
-const navItems: { href: string; label: string; icon: IconName }[] = [
-  { href: "/", label: "Home", icon: "home" },
-  { href: "/discover", label: "Discover", icon: "compass" },
-  { href: "/library", label: "Library", icon: "bookmark" },
-  { href: "/creators", label: "Creators", icon: "users" },
-  { href: "/profile", label: "Profile", icon: "user" },
+const navItems = [
+  { href: "/?explore=1", match: "/", label: "Hub", Icon: Home },
+  { href: "/discover", match: "/discover", label: "Discover", Icon: Compass },
+  {
+    href: "/?explore=1#books-shelf",
+    match: "/books",
+    label: "Books",
+    Icon: BookOpen,
+  },
+  { href: "/library", match: "/library", label: "Library", Icon: Library },
+  { href: "/welcome", match: "/welcome", label: "Founder", Icon: Feather },
 ];
 
 export function MobileBottomNav() {
   const pathname = usePathname() ?? "/";
-  if (pathname.startsWith("/read/")) return null;
+
+  if (pathname.startsWith("/read/")) {
+    return null;
+  }
 
   return (
     <nav
-      aria-label="Mobile navigation"
-      className="fixed bottom-0 inset-x-0 z-30 md:hidden border-t border-[rgba(245,189,67,0.22)] bg-[rgba(5,7,10,0.92)] backdrop-blur-xl px-2 py-1.5"
+      aria-label="Mobile bottom navigation"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-[#05080c]/90 backdrop-blur-2xl"
     >
-      <ul className="grid grid-cols-5 gap-1 m-0 p-0 list-none">
-        {navItems.map((item) => {
+      <ul className="grid grid-cols-5 m-0 p-1.5 list-none">
+        {navItems.map(({ href, match, label, Icon }) => {
           const active =
-            item.href === "/"
+            match === "/"
               ? pathname === "/"
-              : pathname.startsWith(item.href);
+              : pathname === match || pathname.startsWith(match + "/");
           return (
-            <li key={item.href}>
+            <li key={label}>
               <Link
-                href={item.href}
+                href={href}
                 aria-current={active ? "page" : undefined}
                 className={
-                  "flex flex-col items-center justify-center min-h-[48px] rounded-[12px] text-[11px] font-medium transition-colors " +
+                  "flex flex-col items-center justify-center gap-1 min-h-[52px] rounded-xl text-[11px] font-bold transition-colors " +
                   (active
                     ? "text-[var(--gold-bright)] bg-[rgba(245,189,67,0.12)]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-strong)]")
                 }
               >
-                <Icon name={item.icon} size={18} />
-                <span className="mt-0.5">{item.label}</span>
+                <Icon className="w-[18px] h-[18px]" />
+                <span>{label}</span>
               </Link>
             </li>
           );

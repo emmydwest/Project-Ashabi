@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Icon } from "@/components/icons";
+import {
+  Bell,
+  Bookmark,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clapperboard,
+  Flame,
+  Play,
+  X,
+} from "lucide-react";
 import type { AniListMedia, AniListTrailer } from "@/lib/anilist";
 import type { Story } from "@/lib/stories";
 import {
@@ -19,7 +29,7 @@ interface Props {
   stories: Story[];
 }
 
-const SLIDE_DURATION_MS = 6500;
+const SLIDE_DURATION_MS = 7000;
 
 export function HomeComicStage({ spotlightItems, stories }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -102,15 +112,15 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
   if (!active) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Spotlight Carousel */}
+    <div className="space-y-5">
+      {/* Liquid Glass Hero Stage */}
       <section
-        aria-label="Featured Manhwa, Manga, and Anime spotlight"
+        aria-label="Featured series spotlight"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        className="relative overflow-hidden rounded-[28px] border border-[rgba(245,189,67,0.34)] bg-[#060a0e] shadow-[0_28px_80px_rgba(0,0,0,0.65)]"
+        className="liquid-glass relative overflow-hidden rounded-[32px]"
       >
-        {/* Preloaded Crossfading Background Layers (Zero Flicker) */}
+        {/* Crossfading Atmospheric Backdrops */}
         <div className="absolute inset-0">
           {spotlightItems.map((item, idx) => {
             const isCurrent = idx === activeIndex;
@@ -121,7 +131,7 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                 className={
                   "absolute inset-0 transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] " +
                   (isCurrent
-                    ? "opacity-45 scale-105 z-10"
+                    ? "opacity-40 scale-105 z-10"
                     : "opacity-0 scale-100 z-0 pointer-events-none")
                 }
               >
@@ -136,88 +146,54 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
               </div>
             );
           })}
-          <div className="absolute inset-0 z-20 bg-gradient-to-r from-[#05070a] via-[#05070a]/92 to-[#05070a]/35" />
-          <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#05070a] via-transparent to-[#05070a]/50" />
+          <div className="absolute inset-0 z-20 bg-gradient-to-r from-[#05070a] via-[#05070a]/90 to-[#05070a]/30" />
+          <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#05070a] via-transparent to-black/30" />
         </div>
 
-        <div className="relative z-30 grid lg:grid-cols-12 gap-8 p-6 sm:p-10 lg:p-12 items-center">
-          {/* Left: Issue Info & Direct Read CTA with Smooth Fade/Translate Transition */}
+        <div className="relative z-30 grid lg:grid-cols-12 gap-10 p-7 sm:p-12 lg:p-14 items-center">
+          {/* Left: Editorial Copy & Actions */}
           <div
             className={
-              "lg:col-span-7 space-y-5 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] " +
+              "lg:col-span-7 space-y-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] " +
               (isTransitioning
-                ? "opacity-0 translate-y-2.5"
+                ? "opacity-0 translate-y-2"
                 : "opacity-100 translate-y-0")
             }
           >
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-[var(--gold)] text-[#140c02] shadow-[0_0_24px_rgba(245,189,67,0.4)]">
-                <Icon name="flame" size={14} />
-                Spotlight #{activeIndex + 1} of {spotlightItems.length}
-              </span>
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-[var(--border-gold)] bg-black/60 text-[var(--gold-bright)]">
-                {active.category} · {active.countryOfOrigin}
-              </span>
-              {active.averageScore ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border border-[#48c78e]/40 bg-[#12281e]/85 text-[#68e3ab]">
-                  <Icon name="star" size={13} />
-                  <span>{active.averageScore}% Score</span>
+            {/* Clean 2-Pill Eyebrow */}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="neu-pill-active inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
+                <Flame className="w-3.5 h-3.5" />
+                <span>
+                  {active.category} · #{activeIndex + 1}
                 </span>
-              ) : null}
-              <span className="px-3 py-1 rounded-full text-xs font-semibold border border-white/15 bg-black/50 text-[#9be7c4]">
-                {active.chapters
-                  ? `${active.chapters} Chapters`
-                  : active.episodes
-                    ? `${active.episodes} Episodes`
-                    : active.status}
               </span>
-              {active.trailer ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)] border border-[var(--border-gold)]">
-                  <Icon name="play" size={11} />
-                  <span>Trailer</span>
-                </span>
-              ) : null}
+              <span className="text-xs font-semibold text-[var(--gold-300)] tracking-wide">
+                {active.genres.slice(0, 3).join(" · ")}
+                {active.averageScore ? ` · ${active.averageScore}% Rated` : ""}
+              </span>
             </div>
 
             <div className="space-y-2">
-              {active.nativeTitle ? (
-                <p className="text-xs sm:text-sm font-bold tracking-widest text-[var(--gold-bright)] uppercase m-0">
-                  {active.nativeTitle}
-                </p>
-              ) : null}
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-strong)] leading-[1.04]">
+              <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[var(--text-strong)] leading-[1.04] m-0">
                 {active.title}
               </h1>
-              <p className="text-sm sm:text-base font-medium text-[var(--gold-300)] m-0">
+              <p className="text-sm sm:text-base text-[var(--text-muted)] m-0">
                 By{" "}
                 <strong className="text-[var(--ivory)]">
                   {active.authorName}
                 </strong>
-                {active.seasonYear ? ` · Released ${active.seasonYear}` : ""} ·{" "}
-                <span className="uppercase text-xs tracking-wider text-[var(--gold-bright)]">
-                  {active.status}
-                </span>
+                {active.chapters ? ` · ${active.chapters} Chapters` : ""}
+                {active.episodes ? ` · ${active.episodes} Episodes` : ""}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {active.genres.map((g) => (
-                <Link
-                  key={g}
-                  href={`/discover?genre=${encodeURIComponent(g)}`}
-                  className="px-3 py-1 rounded-full text-xs font-semibold border border-white/15 bg-white/[0.06] text-[var(--text-strong)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] transition-all"
-                >
-                  {g}
-                </Link>
-              ))}
-            </div>
-
-            <p className="text-sm sm:text-base text-[var(--text)] max-w-2xl leading-relaxed line-clamp-3">
+            <p className="text-sm sm:text-base text-[var(--text)] max-w-2xl leading-relaxed line-clamp-3 m-0">
               {active.description}
             </p>
 
-            {/* Primary Comic Actions */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            {/* Tactile Neumorphic & Liquid Glass Action Row */}
+            <div className="flex flex-wrap items-center gap-3.5 pt-2">
               <Link
                 href={`/anilist/${active.id}`}
                 onClick={() =>
@@ -227,10 +203,10 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                     surface: "home_spotlight_anilist",
                   })
                 }
-                className="button primary"
+                className="neu-pill-active inline-flex items-center gap-2.5 min-h-[50px] px-7 rounded-full text-xs sm:text-sm font-extrabold"
               >
-                <Icon name="play" size={18} />
-                <span>Open Series Hub &amp; Links</span>
+                <Play className="w-4 h-4 fill-current" />
+                <span>Read Info &amp; Chapters</span>
               </Link>
 
               {active.trailer ? (
@@ -242,22 +218,12 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                       trailer: active.trailer!,
                     })
                   }
-                  className="button secondary cursor-pointer"
+                  className="neu-pill inline-flex items-center gap-2 min-h-[50px] px-5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)] cursor-pointer"
                 >
-                  <Icon name="play" size={16} />
-                  <span>Watch Official Trailer</span>
+                  <Clapperboard className="w-4 h-4 text-[var(--gold-bright)]" />
+                  <span>Watch Trailer</span>
                 </button>
               ) : null}
-
-              <a
-                href={active.siteUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="button secondary"
-              >
-                <Icon name="globe" size={16} />
-                <span>AniList</span>
-              </a>
 
               <button
                 type="button"
@@ -267,14 +233,18 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                 }}
                 aria-pressed={isFollowed}
                 className={
-                  "inline-flex items-center gap-2 min-h-[48px] px-4 rounded-full text-xs font-bold border transition-all cursor-pointer " +
+                  "neu-pill inline-flex items-center gap-2 min-h-[50px] px-5 rounded-full text-xs font-bold cursor-pointer " +
                   (isFollowed
-                    ? "border-[var(--border-gold)] bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)]"
-                    : "border-[var(--border)] bg-black/55 text-[var(--text-strong)] hover:border-[var(--border-gold)]")
+                    ? "text-[var(--gold-bright)] border-[var(--border-gold)]"
+                    : "text-[var(--text)]")
                 }
               >
-                <Icon name={isFollowed ? "check" : "bell"} size={16} />
-                <span>{isFollowed ? "Subscribed" : "+ Subscribe"}</span>
+                {isFollowed ? (
+                  <Check className="w-4 h-4 text-[var(--gold-bright)]" />
+                ) : (
+                  <Bell className="w-4 h-4 text-[var(--gold)]" />
+                )}
+                <span>{isFollowed ? "Subscribed" : "Subscribe"}</span>
               </button>
 
               <button
@@ -284,37 +254,40 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                   setSavedMap((m) => ({ ...m, [storageKey]: next }));
                 }}
                 aria-pressed={isSaved}
-                aria-label={isSaved ? "Remove from Library" : "Add to Library"}
+                aria-label={isSaved ? "Remove from Library" : "Save to Library"}
                 className={
-                  "inline-grid place-items-center w-12 h-12 rounded-full border transition-all cursor-pointer " +
+                  "neu-pill inline-grid place-items-center w-[50px] h-[50px] rounded-full cursor-pointer " +
                   (isSaved
-                    ? "border-[var(--border-gold)] bg-[rgba(245,189,67,0.18)] text-[var(--gold-bright)]"
-                    : "border-[var(--border)] bg-black/55 text-[var(--text-strong)] hover:border-[var(--border-gold)]")
+                    ? "text-[var(--gold-bright)] border-[var(--border-gold)]"
+                    : "text-[var(--text)]")
                 }
               >
-                <Icon name="bookmark" size={18} />
+                <Bookmark
+                  className="w-4 h-4"
+                  fill={isSaved ? "currentColor" : "none"}
+                />
               </button>
             </div>
           </div>
 
-          {/* Right: Comic Issue Cover Stack + Prev/Next Controls + Thumbnail Selector Strip */}
-          <div className="lg:col-span-5 flex flex-col sm:flex-row lg:flex-col items-center gap-5">
-            <div className="relative flex items-center gap-3 w-full justify-center">
+          {/* Right: Clean Poster Cover + Minimalist Selector */}
+          <div className="lg:col-span-5 flex flex-col items-center gap-5">
+            <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => switchSlide(activeIndex - 1)}
                 aria-label="Previous spotlight series"
-                className="w-10 h-10 rounded-full border border-white/15 bg-black/65 text-[var(--ivory)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] grid place-items-center transition-all cursor-pointer shrink-0"
+                className="neu-pill w-11 h-11 rounded-full grid place-items-center text-[var(--ivory)] cursor-pointer shrink-0"
               >
-                <Icon name="arrow-left" size={16} />
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
               <Link
                 href={`/anilist/${active.id}`}
                 className={
-                  "group relative w-full max-w-[270px] aspect-[2/3] rounded-[22px] overflow-hidden border-2 border-[rgba(245,189,67,0.55)] shadow-[0_24px_60px_rgba(0,0,0,0.75)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1.5 " +
+                  "neu-card group relative w-56 sm:w-64 aspect-[2/3] rounded-[24px] overflow-hidden transition-all duration-500 " +
                   (isTransitioning
-                    ? "opacity-30 scale-[0.97]"
+                    ? "opacity-40 scale-[0.97]"
                     : "opacity-100 scale-100")
                 }
               >
@@ -324,48 +297,30 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                     src={item.coverImage}
                     alt={item.title}
                     fill
-                    sizes="270px"
+                    sizes="256px"
                     className={
                       "object-cover transition-all duration-700 ease-out group-hover:scale-105 " +
                       (idx === activeIndex ? "opacity-100" : "opacity-0")
                     }
                   />
                 ))}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/25" />
-                <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-black/80 text-[var(--gold-bright)] border border-[var(--border-gold)]">
-                    {active.category} #{activeIndex + 1}
-                  </span>
-                  {active.averageScore ? (
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[rgba(72,199,142,0.25)] border border-[rgba(72,199,142,0.5)] text-[#9be7c4]">
-                      {active.averageScore}%
-                    </span>
-                  ) : null}
-                </div>
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-[var(--ivory)]">
-                  <span className="font-semibold truncate">
-                    {active.authorName}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[var(--gold-bright)] font-bold shrink-0">
-                    Explore <Icon name="arrow" size={14} />
-                  </span>
-                </div>
               </Link>
 
               <button
                 type="button"
                 onClick={() => switchSlide(activeIndex + 1)}
                 aria-label="Next spotlight series"
-                className="w-10 h-10 rounded-full border border-white/15 bg-black/65 text-[var(--ivory)] hover:border-[var(--border-gold)] hover:text-[var(--gold-bright)] grid place-items-center transition-all cursor-pointer shrink-0"
+                className="neu-pill w-11 h-11 rounded-full grid place-items-center text-[var(--ivory)] cursor-pointer shrink-0"
               >
-                <Icon name="arrow" size={16} />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Clean Dot & Thumbnail Strip */}
             <div
               role="tablist"
               aria-label="Select spotlight series"
-              className="grid grid-cols-6 gap-2 w-full max-w-[360px]"
+              className="neu-inset p-1.5 rounded-2xl grid grid-cols-6 gap-2 w-full max-w-[330px]"
             >
               {spotlightItems.map((item, idx) => {
                 const selected = idx === activeIndex;
@@ -378,17 +333,17 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                     aria-label={`Spotlight ${item.title}`}
                     onClick={() => switchSlide(idx)}
                     className={
-                      "relative aspect-[2/3] rounded-[10px] overflow-hidden border-2 transition-all duration-300 cursor-pointer " +
+                      "relative aspect-[2/3] rounded-xl overflow-hidden border transition-all duration-300 cursor-pointer " +
                       (selected
-                        ? "border-[var(--gold-bright)] scale-105 shadow-[0_0_20px_rgba(245,189,67,0.45)]"
-                        : "border-white/15 opacity-55 hover:opacity-90")
+                        ? "border-[var(--gold-bright)] scale-105 shadow-[0_0_16px_rgba(245,189,67,0.4)]"
+                        : "border-transparent opacity-45 hover:opacity-85")
                     }
                   >
                     <Image
                       src={item.coverImage}
                       alt={item.title}
                       fill
-                      sizes="60px"
+                      sizes="52px"
                       className="object-cover"
                     />
                   </button>
@@ -397,41 +352,27 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
             </div>
           </div>
         </div>
-
-        <div className="relative z-30 h-1 w-full bg-white/5 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-bright)] transition-all duration-500 ease-out"
-            style={{
-              width: `${((activeIndex + 1) / spotlightItems.length) * 100}%`,
-            }}
-          />
-        </div>
       </section>
 
       {/* Instant Continue Reading Bar */}
       {recentProgress && resumeStory ? (
         <section
           aria-label="Continue reading where you left off"
-          className="rounded-[20px] border border-[var(--border-gold)] bg-gradient-to-r from-[rgba(245,189,67,0.14)] via-[rgba(12,19,25,0.92)] to-[rgba(12,19,25,0.92)] p-4 sm:px-6 flex flex-wrap items-center justify-between gap-4"
+          className="liquid-glass-gold rounded-[22px] p-4 sm:px-6 flex flex-wrap items-center justify-between gap-4"
         >
           <div className="flex items-center gap-4 min-w-0">
-            <div className="relative w-12 h-16 rounded-[10px] overflow-hidden border border-[var(--border-gold)] shrink-0">
+            <div className="relative w-11 h-15 rounded-xl overflow-hidden border border-white/15 shrink-0">
               <Image
                 src={`/images/${resumeStory.image}.webp`}
                 alt={resumeStory.title}
                 fill
-                sizes="48px"
+                sizes="44px"
               />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--gold-bright)]">
-                  Continue Reading
-                </span>
-                <span className="text-xs text-[var(--text-muted)]">
-                  · {recentProgress.percent}% completed
-                </span>
-              </div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--gold-bright)] block">
+                Continue Reading · {recentProgress.percent}%
+              </span>
               <p className="text-sm sm:text-base font-bold text-[var(--text-strong)] truncate m-0">
                 {resumeStory.title} — Ep. {recentProgress.chapterNumber}:{" "}
                 {recentProgress.chapterTitle}
@@ -439,53 +380,43 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/read/${recentProgress.storySlug}/${recentProgress.chapterSlug}`}
-              className="button primary text-xs px-4 py-2.5"
-            >
-              <Icon name="play" size={15} />
-              <span>Resume Episode</span>
-            </Link>
-            <Link
-              href="/library"
-              className="text-xs font-semibold text-[var(--gold-bright)] hover:underline"
-            >
-              My Library
-            </Link>
-          </div>
+          <Link
+            href={`/read/${recentProgress.storySlug}/${recentProgress.chapterSlug}`}
+            className="neu-pill-active inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Resume</span>
+          </Link>
         </section>
       ) : null}
 
-      {/* Embedded Trailer Lightbox Modal */}
+      {/* Trailer Modal */}
       {activeTrailer ? (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`${activeTrailer.title} Official Trailer`}
-          className="fixed inset-0 z-[130] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-[130] bg-black/85 backdrop-blur-xl flex items-center justify-center p-4"
           onClick={() => setActiveTrailer(null)}
         >
           <div
-            className="w-full max-w-4xl rounded-[24px] border border-[var(--border-gold)] bg-[#070b10] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.95)]"
+            className="liquid-glass-gold w-full max-w-4xl rounded-[28px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-[var(--gold)] text-[#140c02]">
-                  Official Trailer
-                </span>
-                <h3 className="text-sm sm:text-base font-extrabold text-[var(--text-strong)] truncate m-0">
-                  {activeTrailer.title}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <Clapperboard className="w-4 h-4 text-[var(--gold-bright)]" />
+                <h3 className="text-sm sm:text-base font-bold text-[var(--text-strong)] truncate m-0">
+                  {activeTrailer.title} — Official Trailer
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTrailer(null)}
                 aria-label="Close trailer"
-                className="w-8 h-8 rounded-full border border-white/15 bg-white/5 grid place-items-center text-[var(--ivory)] hover:border-[var(--border-gold)] cursor-pointer"
+                className="neu-pill w-8 h-8 rounded-full grid place-items-center text-[var(--ivory)] cursor-pointer"
               >
-                <Icon name="close" size={15} />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="relative aspect-video w-full bg-black">
