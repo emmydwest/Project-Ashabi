@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -10,6 +9,7 @@ import {
   Play,
   Star,
 } from "lucide-react";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import { SeriesChaptersBrowser } from "@/components/reader/series-chapters-browser";
 import { getAniListMediaById } from "@/lib/anilist";
 import { getMangaDexChaptersForTitle } from "@/lib/mangadex";
@@ -30,9 +30,22 @@ export async function generateMetadata({
   if (!media) {
     return { title: "Series Not Found" };
   }
+  const ogImage =
+    media.bannerImage || media.coverImage || "/images/hero-ashabi-dawn.webp";
   return {
     title: `${media.title} (${media.category})`,
     description: media.description.slice(0, 160),
+    openGraph: {
+      title: `${media.title} (${media.category}) | Project Ashabi`,
+      description: media.description.slice(0, 160),
+      images: [{ url: ogImage, alt: media.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${media.title} (${media.category}) | Project Ashabi`,
+      description: media.description.slice(0, 160),
+      images: [ogImage],
+    },
   };
 }
 

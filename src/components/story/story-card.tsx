@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import type { Story } from "@/lib/stories";
 import { Icon } from "@/components/icons";
 

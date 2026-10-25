@@ -80,11 +80,19 @@ function cleanSubjects(
   return Array.from(new Set(combined)).slice(0, 4);
 }
 
+const LOCAL_BOOK_COVERS = [
+  "/images/story-between-two-suns.webp",
+  "/images/story-the-last-baobab.webp",
+  "/images/story-the-iron-guild.webp",
+  "/images/story-neon-lagos.webp",
+];
+
 function normalizeBook(raw: RawGutendexBook): PublicBook {
   const formats = raw.formats ?? {};
-  const coverImage =
-    formats["image/jpeg"] ||
-    `https://www.gutenberg.org/cache/epub/${raw.id}/pg${raw.id}.cover.medium.jpg`;
+  const fallbackCover =
+    LOCAL_BOOK_COVERS[Math.abs(raw.id) % LOCAL_BOOK_COVERS.length] ??
+    "/images/story-between-two-suns.webp";
+  const coverImage = formats["image/jpeg"] || fallbackCover;
 
   const readHtmlUrl =
     formats["text/html"] ||

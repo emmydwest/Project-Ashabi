@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Image from "next/image";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import Link from "next/link";
 import { Clapperboard, Search, X } from "lucide-react";
 import {

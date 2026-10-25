@@ -212,7 +212,19 @@ export function MangaDexVerticalReader({
               src={url}
               alt={`${seriesTitle} Chapter ${currentChapter.chapterNumber} — Page ${idx + 1}`}
               referrerPolicy="no-referrer"
+              decoding="async"
               loading={idx < 3 ? "eager" : "lazy"}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.dataset.fallbackApplied) return;
+                target.dataset.fallbackApplied = "1";
+                const rawParam = url.split("url=")[1];
+                if (rawParam) {
+                  target.src = decodeURIComponent(rawParam);
+                } else {
+                  target.src = "/images/story-neon-lagos.webp";
+                }
+              }}
               className="w-full h-auto block select-none"
             />
           </div>

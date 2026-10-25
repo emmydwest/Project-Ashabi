@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import Link from "next/link";
 import { creators, getStoriesByCreator } from "@/lib/stories";
 import { Badge } from "@/components/ui/primitives";

@@ -8,10 +8,11 @@ export async function GET(request: NextRequest) {
   const clientIp =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 
+  // Allow full 200+ page webtoon chapters to stream smoothly while preventing abuse
   const { allowed, retryAfterMs } = checkRateLimit(
     `img-proxy:${clientIp}`,
-    60,
-    15,
+    400,
+    80,
   );
   if (!allowed) {
     return new NextResponse("Rate limit exceeded. Please slow down.", {
@@ -24,21 +25,26 @@ export async function GET(request: NextRequest) {
 
   const rawUrl = request.nextUrl.searchParams.get("url");
   if (!rawUrl) {
-    return new NextResponse("Missing image url", { status: 400 });
+    return NextResponse.redirect(
+      new URL("/images/story-neon-lagos.webp", request.url),
+    );
   }
 
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
-    return new NextResponse("Invalid image url", { status: 400 });
+    return NextResponse.redirect(
+      new URL("/images/story-neon-lagos.webp", request.url),
+    );
   }
 
   const host = parsed.hostname.toLowerCase();
   const isAllowed =
     host.endsWith("mangadex.org") ||
     host.endsWith("mangadex.network") ||
-    host.endsWith("gutenberg.org");
+    host.endsWith("gutenberg.org") ||
+    host.endsWith("anilist.co");
 
   if (!isAllowed) {
     return new NextResponse("Forbidden host", { status: 403 });
@@ -54,9 +60,8 @@ export async function GET(request: NextRequest) {
     });
 
     if (!upstream.ok || !upstream.body) {
-      return new NextResponse(`Upstream error ${upstream.status}`, {
-        status: upstream.status,
-      });
+      // Fallback: redirect browser directly to upstream asset with no-referrer
+      return NextResponse.redirect(parsed.toString(), 307);
     }
 
     const contentType =
@@ -66,10 +71,10 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, s-maxage=86400",
+        "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
       },
     });
   } catch {
-    return new NextResponse("Failed to proxy image", { status: 502 });
+    return NextResponse.redirect(parsed.toString(), 307);
   }
 }

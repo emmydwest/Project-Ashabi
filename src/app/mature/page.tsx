@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import Link from "next/link";
 import { BookOpen, Flame, Search, ShieldAlert, Star } from "lucide-react";
 import { MatureAgeGate } from "@/components/legal/mature-age-gate";

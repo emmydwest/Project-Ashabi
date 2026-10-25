@@ -21,13 +21,38 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "Ashabi — African stories. Global worlds.",
-    template: "%s | Ashabi",
+    default: "Project Ashabi — African Stories. Limitless Worlds.",
+    template: "%s | Project Ashabi",
   },
   description:
-    "Discover free-to-read African comics, graphic novels, illustrated stories, and serialized fiction on Ashabi.",
-  icons: { icon: "/images/ashabi-logo.png" },
+    "Discover free-to-read African comics, graphic novels, webtoons, and serialized fiction on Project Ashabi.",
+  icons: {
+    icon: "/images/ashabi-logo.png",
+    apple: "/images/ashabi-logo.png",
+  },
+  openGraph: {
+    title: "Project Ashabi — African Stories. Limitless Worlds.",
+    description:
+      "An African-founded entertainment and digital publishing platform for comics, webtoons, graphic novels, and serialized fiction.",
+    type: "website",
+    images: [
+      {
+        url: "/images/hero-ashabi-dawn.webp",
+        width: 1200,
+        height: 630,
+        alt: "Project Ashabi — African Stories. Limitless Worlds.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Project Ashabi — African Stories. Limitless Worlds.",
+    description:
+      "Discover African comics, graphic novels, webtoons, and serialized fiction on Project Ashabi.",
+    images: ["/images/hero-ashabi-dawn.webp"],
+  },
 };
+
 export default function RootLayout({
   children,
 }: {
@@ -46,4 +71,3 @@ export default function RootLayout({
     </html>
   );
 }
-

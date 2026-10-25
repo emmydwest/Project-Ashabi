@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -9,6 +8,7 @@ import {
   Feather,
   Layers,
 } from "lucide-react";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import { BookChapterReader } from "@/components/reader/book-chapter-reader";
 import { getPublicBookById, getFeaturedBooks } from "@/lib/books";
 
@@ -24,9 +24,21 @@ export async function generateMetadata({
   if (!Number.isFinite(numericId)) return { title: "Book Not Found" };
   const data = await getPublicBookById(numericId);
   if (!data) return { title: "Book Not Found" };
+  const ogImage = data.book.coverImage || "/images/story-between-two-suns.webp";
   return {
     title: `${data.book.title} — by ${data.book.author}`,
     description: data.book.summary.slice(0, 160),
+    openGraph: {
+      title: `${data.book.title} — by ${data.book.author} | Project Ashabi`,
+      description: data.book.summary.slice(0, 160),
+      images: [{ url: ogImage, alt: data.book.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${data.book.title} — by ${data.book.author}`,
+      description: data.book.summary.slice(0, 160),
+      images: [ogImage],
+    },
   };
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeImage as Image } from "@/components/ui/safe-image";
 import {
   ArrowRight,
   BookOpen,
