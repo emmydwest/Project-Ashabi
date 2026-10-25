@@ -45,10 +45,49 @@ interface RawMangaDexChapter {
   }[];
 }
 
+function normalizeRawChapters(
+  rawList: RawMangaDexChapter[],
+  seenChapters: Set<string>,
+  chapters: MangaDexChapterSummary[],
+) {
+  for (const item of rawList) {
+    const pages = item.attributes?.pages ?? 0;
+    const externalUrl = item.attributes?.externalUrl;
+    if (pages <= 0 || externalUrl) continue;
+
+    const chNum =
+      item.attributes?.chapter?.trim() || String(chapters.length + 1);
+    if (seenChapters.has(chNum)) continue;
+    seenChapters.add(chNum);
+
+    const groupRel = item.relationships?.find(
+      (r) => r.type === "scanlation_group",
+    );
+    const lang = (item.attributes?.translatedLanguage ?? "en").toUpperCase();
+
+    chapters.push({
+      id: item.id,
+      chapterNumber: chNum,
+      title:
+        item.attributes?.title?.trim() ||
+        `Chapter ${chNum}${lang !== "EN" ? ` (${lang})` : ""}`,
+      volume: item.attributes?.volume ?? null,
+      pages,
+      publishAt: item.attributes?.publishAt ?? new Date().toISOString(),
+      language: item.attributes?.translatedLanguage ?? "en",
+      scanlationGroup: groupRel?.attributes?.name ?? "MangaDex Release",
+    });
+  }
+}
+
 async function fetchPlayableFeedForMangaId(
   mangaId: string,
 ): Promise<MangaDexChapterSummary[]> {
-  const feedUrl =
+  const seenChapters = new Set<string>();
+  const chapters: MangaDexChapterSummary[] = [];
+
+  // 1. Prefer English hosted chapters first
+  const enFeedUrl =
     `${MANGADEX_API}/manga/${mangaId}/feed` +
     `?translatedLanguage[]=en` +
     `&order[chapter]=asc` +
@@ -56,48 +95,61 @@ async function fetchPlayableFeedForMangaId(
     `&includes[]=scanlation_group` +
     `&contentRating[]=safe` +
     `&contentRating[]=suggestive` +
+    `&contentRating[]=erotica` +
     `&includeEmptyPages=0` +
     `&includeFuturePublishAt=0` +
     `&includeExternalUrl=0`;
 
-  const res = await fetch(feedUrl, {
-    headers: HEADERS,
-    next: { revalidate: 1800 },
-  });
-
-  if (!res.ok) return [];
-  const json = await res.json();
-  const rawList: RawMangaDexChapter[] = json?.data ?? [];
-
-  // Deduplicate by chapter number so the reader gets one clean entry per chapter
-  const seenChapters = new Set<string>();
-  const chapters: MangaDexChapterSummary[] = [];
-
-  for (const item of rawList) {
-    const pages = item.attributes?.pages ?? 0;
-    const externalUrl = item.attributes?.externalUrl;
-    if (pages <= 0 || externalUrl) continue;
-
-    const chNum = item.attributes?.chapter?.trim() || String(chapters.length + 1);
-    if (seenChapters.has(chNum)) continue;
-    seenChapters.add(chNum);
-
-    const groupRel = item.relationships?.find(
-      (r) => r.type === "scanlation_group",
-    );
-
-    chapters.push({
-      id: item.id,
-      chapterNumber: chNum,
-      title:
-        item.attributes?.title?.trim() || `Chapter ${chNum}`,
-      volume: item.attributes?.volume ?? null,
-      pages,
-      publishAt: item.attributes?.publishAt ?? new Date().toISOString(),
-      language: item.attributes?.translatedLanguage ?? "en",
-      scanlationGroup: groupRel?.attributes?.name ?? "Community Release",
+  try {
+    const resEn = await fetch(enFeedUrl, {
+      headers: HEADERS,
+      next: { revalidate: 1800 },
     });
+    if (resEn.ok) {
+      const jsonEn = await resEn.json();
+      normalizeRawChapters(jsonEn?.data ?? [], seenChapters, chapters);
+    }
+  } catch {
+    // Continue to multi-language fallback if needed
   }
+
+  // 2. If a licensed Manhwa/Manga has fewer than 5 English chapters hosted directly on MangaDex,
+  // also include hosted chapters across all available languages so full vertical strips are playable
+  if (chapters.length < 5) {
+    const anyFeedUrl =
+      `${MANGADEX_API}/manga/${mangaId}/feed` +
+      `?order[chapter]=asc` +
+      `&limit=96` +
+      `&includes[]=scanlation_group` +
+      `&contentRating[]=safe` +
+      `&contentRating[]=suggestive` +
+      `&contentRating[]=erotica` +
+      `&includeEmptyPages=0` +
+      `&includeFuturePublishAt=0` +
+      `&includeExternalUrl=0`;
+
+    try {
+      const resAny = await fetch(anyFeedUrl, {
+        headers: HEADERS,
+        next: { revalidate: 1800 },
+      });
+      if (resAny.ok) {
+        const jsonAny = await resAny.json();
+        normalizeRawChapters(jsonAny?.data ?? [], seenChapters, chapters);
+      }
+    } catch {
+      // Ignore error
+    }
+  }
+
+  chapters.sort((a, b) => {
+    const numA = parseFloat(a.chapterNumber);
+    const numB = parseFloat(b.chapterNumber);
+    if (Number.isFinite(numA) && Number.isFinite(numB)) {
+      return numA - numB;
+    }
+    return a.chapterNumber.localeCompare(b.chapterNumber);
+  });
 
   return chapters;
 }
@@ -109,19 +161,25 @@ export async function getMangaDexChaptersForTitle(
   mangaDexId: string | null;
   chapters: MangaDexChapterSummary[];
 }> {
-  const queries = [primaryTitle, nativeTitle].filter(
-    (q): q is string => Boolean(q && q.trim().length > 1),
+  const shortTitle = primaryTitle.split(/[:;-]/)[0]?.trim();
+  const queries = Array.from(
+    new Set(
+      [primaryTitle, shortTitle, nativeTitle].filter(
+        (q): q is string => Boolean(q && q.trim().length > 1),
+      ),
+    ),
   );
 
   for (const q of queries) {
     try {
+      // IMPORTANT: MangaDex v5 requires camelCase `order[followedCount]=desc`
       const searchUrl =
         `${MANGADEX_API}/manga?title=${encodeURIComponent(q)}` +
-        `&limit=6&order[FollowedCount]=desc&hasAvailableChapters=true`;
+        `&limit=6&order[followedCount]=desc&hasAvailableChapters=true`;
 
       const res = await fetch(searchUrl, {
         headers: HEADERS,
-        next: { revalidate: 3600 },
+        next: { revalidate: 1800 },
       });
 
       if (!res.ok) continue;
@@ -138,7 +196,7 @@ export async function getMangaDexChaptersForTitle(
         }
       }
     } catch {
-      // Continue to next candidate or fallback
+      // Continue to next query candidate
     }
   }
 
@@ -181,11 +239,15 @@ export async function getMangaDexChapterPages(
     }
 
     const pageUrls = dataFiles.map(
-      (file) => `${baseUrl}/data/${hash}/${file}`,
+      (file) =>
+        `/api/manga-image?url=${encodeURIComponent(`${baseUrl}/data/${hash}/${file}`)}`,
     );
     const dataSaverUrls =
       saverFiles.length > 0
-        ? saverFiles.map((file) => `${baseUrl}/data-saver/${hash}/${file}`)
+        ? saverFiles.map(
+            (file) =>
+              `/api/manga-image?url=${encodeURIComponent(`${baseUrl}/data-saver/${hash}/${file}`)}`,
+          )
         : pageUrls;
 
     return {
