@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Compass, Feather, Home, Library } from "lucide-react";
+import { BookOpen, Compass, Feather, Flame, Home } from "lucide-react";
 
 const navItems = [
   { href: "/?explore=1", match: "/", label: "Hub", Icon: Home },
   { href: "/discover", match: "/discover", label: "Discover", Icon: Compass },
   {
-    href: "/?explore=1#books-shelf",
+    href: "/books",
     match: "/books",
     label: "Books",
     Icon: BookOpen,
   },
-  { href: "/library", match: "/library", label: "Library", Icon: Library },
+  { href: "/mature", match: "/mature", label: "18+", Icon: Flame },
   { href: "/welcome", match: "/welcome", label: "Founder", Icon: Feather },
 ];
 

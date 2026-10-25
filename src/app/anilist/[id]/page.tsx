@@ -5,12 +5,12 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
-  ChevronRight,
   ExternalLink,
   Layers,
   Play,
   Star,
 } from "lucide-react";
+import { SeriesChaptersBrowser } from "@/components/reader/series-chapters-browser";
 import { getAniListMediaById } from "@/lib/anilist";
 import { getMangaDexChaptersForTitle } from "@/lib/mangadex";
 
@@ -48,11 +48,13 @@ export default async function AniListSeriesPage({ params }: PageProps) {
     notFound();
   }
 
-  const { chapters } = await getMangaDexChaptersForTitle(
-    media.title,
-    media.nativeTitle,
+  const { chapters, availableLanguages, defaultLanguage } =
+    await getMangaDexChaptersForTitle(media.title, media.nativeTitle);
+
+  const defaultLangChapters = chapters.filter(
+    (c) => c.language === defaultLanguage,
   );
-  const firstChapter = chapters[0];
+  const firstChapter = defaultLangChapters[0] ?? chapters[0];
   const officialLinks = (media.externalLinks ?? []).slice(0, 8);
 
   return (
@@ -73,7 +75,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           <span>Back to {media.category} Hub</span>
         </Link>
         <span className="text-xs text-[var(--text-muted)] truncate">
-          {media.category} · In-App Vertical Chapter Reader
+          {media.category} · {availableLanguages.length} Language(s) Available
         </span>
       </nav>
 
@@ -123,7 +125,8 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                 {media.status}
               </span>
               <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--gold-bright)]">
-                {chapters.length} Readable Chapters
+                {availableLanguages.length} Languages · {chapters.length} Total
+                Chapters
               </span>
             </div>
 
@@ -175,27 +178,28 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               {firstChapter ? (
                 <Link
                   href={`/anilist/${media.id}/read/${firstChapter.id}`}
-                  className="neu-pill-active inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full text-xs sm:text-sm font-extrabold"
+                  className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold"
                 >
                   <BookOpen className="w-4 h-4" />
                   <span>
-                    Read Chapter {firstChapter.chapterNumber} In-App
+                    Read Ch. {firstChapter.chapterNumber} (
+                    {firstChapter.language.toUpperCase()})
                   </span>
                 </Link>
               ) : null}
 
               <a
                 href="#playable-chapters"
-                className="neu-pill inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+                className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
               >
                 <Layers className="w-4 h-4 text-[var(--gold-bright)]" />
-                <span>All Chapters ({chapters.length})</span>
+                <span>Choose Language &amp; Chapter</span>
               </a>
 
               {media.trailer ? (
                 <a
                   href="#series-trailer"
-                  className="neu-pill inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
+                  className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
                 >
                   <Play className="w-4 h-4 text-[var(--gold-bright)] fill-current" />
                   <span>Watch Official Trailer</span>
@@ -206,70 +210,13 @@ export default async function AniListSeriesPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* In-App Readable Chapters List */}
-      <section
-        id="playable-chapters"
-        aria-labelledby="chapters-heading"
-        className="liquid-glass rounded-[30px] p-6 sm:p-10 space-y-6"
-      >
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
-          <div className="space-y-1">
-            <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--gold-bright)]">
-              <Layers className="w-3.5 h-3.5" />
-              <span>Full Vertical Strip Reader</span>
-            </span>
-            <h2
-              id="chapters-heading"
-              className="text-2xl sm:text-3xl font-extrabold m-0"
-            >
-              Read Chapters on Ashabi
-            </h2>
-          </div>
-
-          {firstChapter ? (
-            <Link
-              href={`/anilist/${media.id}/read/${firstChapter.id}`}
-              className="neu-pill-active inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Start from Chapter {firstChapter.chapterNumber}</span>
-            </Link>
-          ) : null}
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[540px] overflow-y-auto pr-1">
-          {chapters.map((chapter) => (
-            <Link
-              key={chapter.id}
-              href={`/anilist/${media.id}/read/${chapter.id}`}
-              className="neu-card group rounded-[18px] p-4 flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--gold-bright)]">
-                    Chapter {chapter.chapterNumber}
-                  </span>
-                  <span className="text-[11px] text-[var(--text-muted)]">
-                    · {chapter.pages} Pages
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-[var(--text-strong)] group-hover:text-[var(--gold-bright)] truncate m-0">
-                  {chapter.title}
-                </h3>
-                {chapter.scanlationGroup ? (
-                  <p className="text-[11px] text-[var(--text-muted)] truncate m-0">
-                    {chapter.scanlationGroup}
-                  </p>
-                ) : null}
-              </div>
-
-              <span className="neu-pill w-9 h-9 rounded-full grid place-items-center text-[var(--ivory)] group-hover:text-[var(--gold-bright)] shrink-0">
-                <ChevronRight className="w-4 h-4" />
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* Interactive Language & Chapters Browser */}
+      <SeriesChaptersBrowser
+        seriesId={media.id}
+        chapters={chapters}
+        availableLanguages={availableLanguages}
+        defaultLanguage={defaultLanguage}
+      />
 
       {/* Official Video Trailer Section */}
       {media.trailer ? (

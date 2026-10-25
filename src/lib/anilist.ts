@@ -840,3 +840,104 @@ const FALLBACK_HOME_FEED = buildHomeFeed(
   [],
   "fallback",
 );
+
+
+const MATURE_CATALOG_QUERY = `
+  query AshabiMatureCatalog(
+    $search: String
+    $countryOfOrigin: CountryCode
+    $isAdult: Boolean
+    $perPage: Int = 24
+  ) {
+    Page(page: 1, perPage: $perPage) {
+      media(
+        search: $search
+        type: MANGA
+        countryOfOrigin: $countryOfOrigin
+        isAdult: $isAdult
+        sort: [POPULARITY_DESC, SCORE_DESC]
+      ) {
+        id
+        type
+        format
+        status
+        countryOfOrigin
+        seasonYear
+        startDate {
+          year
+        }
+        chapters
+        volumes
+        averageScore
+        popularity
+        genres
+        siteUrl
+        bannerImage
+        title {
+          english
+          romaji
+          native
+        }
+        description(asHtml: false)
+        coverImage {
+          extraLarge
+          large
+          color
+        }
+        trailer {
+          id
+          site
+          thumbnail
+        }
+      }
+    }
+  }
+`;
+
+export async function getAniListMatureCatalog(params: {
+  query?: string;
+  category?: "ALL" | "MANHWA" | "MANGA";
+  mode?: "ADULT_18" | "DARK_SEINEN";
+}): Promise<AniListMedia[]> {
+  const cleanQuery = params.query?.trim() || undefined;
+  const countryOfOrigin =
+    params.category === "MANHWA"
+      ? "KR"
+      : params.category === "MANGA"
+        ? "JP"
+        : undefined;
+  const isAdult = params.mode !== "DARK_SEINEN";
+
+  try {
+    const response = await fetch(ANILIST_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        query: MATURE_CATALOG_QUERY,
+        variables: {
+          search: cleanQuery,
+          countryOfOrigin,
+          isAdult,
+          perPage: 24,
+        },
+      }),
+      next: { revalidate: 1800 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`AniList mature HTTP ${response.status}`);
+    }
+
+    const json = await response.json();
+    const rawList: RawAniListNode[] = json?.data?.Page?.media ?? [];
+    if (rawList.length === 0) {
+      return [...FALLBACK_MANHWA, ...FALLBACK_MANGA];
+    }
+    return rawList.map((node) => normalizeNode(node));
+  } catch {
+    return [...FALLBACK_MANHWA, ...FALLBACK_MANGA];
+  }
+}

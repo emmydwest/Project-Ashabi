@@ -51,14 +51,14 @@ export default async function BookReaderPage({ params }: PageProps) {
       {/* Top Back Navigation */}
       <nav aria-label="Breadcrumb" className="flex items-center justify-between">
         <Link
-          href="/?explore=1#books-shelf"
+          href="/books"
           className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
         >
           <ArrowLeft className="w-4 h-4 text-[var(--gold-bright)]" />
-          <span>Back to Books &amp; Novels</span>
+          <span>Back to Books &amp; Novels Catalogue</span>
         </Link>
         <span className="text-xs text-[var(--text-muted)]">
-          Full In-App Novel Reader · {chapters.length} Chapters
+          Open-Book Spread Reader · {chapters.length} Chapters
         </span>
       </nav>
 

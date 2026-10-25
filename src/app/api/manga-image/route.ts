@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const USER_AGENT =
   "ProjectAshabi/1.0 (https://github.com/emmydwest/Project-Ashabi)";
 
 export async function GET(request: NextRequest) {
+  const clientIp =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+
+  const { allowed, retryAfterMs } = checkRateLimit(
+    `img-proxy:${clientIp}`,
+    60,
+    15,
+  );
+  if (!allowed) {
+    return new NextResponse("Rate limit exceeded. Please slow down.", {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.ceil(retryAfterMs / 1000)),
+      },
+    });
+  }
+
   const rawUrl = request.nextUrl.searchParams.get("url");
   if (!rawUrl) {
     return new NextResponse("Missing image url", { status: 400 });

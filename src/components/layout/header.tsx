@@ -4,6 +4,7 @@ import {
   BookOpen,
   Compass,
   Feather,
+  Flame,
   Home,
   Library,
   Users,
@@ -39,67 +40,74 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Primary Desktop Navigation with Purpose-Built Icons */}
+        {/* Primary Desktop Navigation */}
         <nav
           aria-label="Main navigation"
-          className="hidden xl:flex items-center gap-1.5 neu-inset p-1.5 rounded-full"
+          className="hidden xl:flex items-center gap-1 neu-inset p-1.5 rounded-full"
         >
           <Link
             href="/?explore=1"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
           >
             <Home className="w-3.5 h-3.5 text-[var(--gold)]" />
             <span>Comics Hub</span>
           </Link>
           <Link
             href="/discover"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
           >
             <Compass className="w-3.5 h-3.5 text-[var(--gold)]" />
             <span>Discover</span>
           </Link>
           <Link
-            href="/?explore=1#books-shelf"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
+            href="/books"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
           >
             <BookOpen className="w-3.5 h-3.5 text-[var(--gold)]" />
-            <span>Books</span>
+            <span>Books &amp; Novels</span>
+          </Link>
+          <Link
+            href="/mature"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[#ff8a8a] hover:text-[#ffb4b4] hover:bg-white/[0.04] transition-all"
+          >
+            <Flame className="w-3.5 h-3.5 text-[#ff6b6b]" />
+            <span>18+ Hub</span>
           </Link>
           <Link
             href="/library"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
           >
             <Library className="w-3.5 h-3.5 text-[var(--gold)]" />
             <span>Library</span>
           </Link>
           <Link
             href="/creators"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
           >
             <Users className="w-3.5 h-3.5 text-[var(--gold)]" />
             <span>Creators</span>
           </Link>
           <Link
             href="/welcome"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--gold-bright)] bg-[rgba(245,189,67,0.1)] border border-[rgba(245,189,67,0.25)] hover:bg-[rgba(245,189,67,0.18)] transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--gold-bright)] bg-[rgba(245,189,67,0.1)] border border-[rgba(245,189,67,0.25)] hover:bg-[rgba(245,189,67,0.18)] transition-all"
           >
             <Feather className="w-3.5 h-3.5" />
             <span>Founder’s Note</span>
           </Link>
         </nav>
 
-        {/* Search + WhatsApp Founder CTA */}
-        <div className="flex items-center gap-3 flex-1 justify-end max-w-lg">
+        {/* Search + Compact Icon-Only WhatsApp Button */}
+        <div className="flex items-center gap-2.5 flex-1 justify-end max-w-md">
           <HeaderSearch />
           <a
             href={WHATSAPP_URL}
             target="_blank"
             rel="noreferrer"
+            aria-label="Contact the Founder on WhatsApp"
             title="Contact the Founder on WhatsApp (+234 904 896 4270)"
-            className="whatsapp-glass-btn hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-extrabold shrink-0"
+            className="whatsapp-glass-btn w-10 h-10 rounded-full grid place-items-center shrink-0"
           >
-            <Icon name="whatsapp" size={16} />
-            <span className="hidden md:inline">WhatsApp</span>
+            <Icon name="whatsapp" size={18} />
           </a>
         </div>
       </div>
@@ -124,7 +132,8 @@ export function Footer() {
           <strong>Explore</strong>
           <Link href="/?explore=1">Comics &amp; Manhwa Hub</Link>
           <Link href="/discover">Discover Catalog</Link>
-          <Link href="/?explore=1#books-shelf">Free Books &amp; Novels</Link>
+          <Link href="/books">Books &amp; Novels Catalogue</Link>
+          <Link href="/mature">18+ Mature Catalogue</Link>
           <Link href="/library">My Library</Link>
         </div>
         <div className="footer-links">
@@ -141,10 +150,11 @@ export function Footer() {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noreferrer"
-            className="whatsapp-glass-btn mt-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-xs font-extrabold tracking-normal normal-case w-fit"
+            aria-label="Contact the Founder on WhatsApp"
+            title="Contact the Founder on WhatsApp (+234 904 896 4270)"
+            className="whatsapp-glass-btn mt-3 w-10 h-10 rounded-full grid place-items-center"
           >
-            <Icon name="whatsapp" size={15} />
-            <span>WhatsApp Founder</span>
+            <Icon name="whatsapp" size={18} />
           </a>
         </div>
         <div className="footer-bottom">

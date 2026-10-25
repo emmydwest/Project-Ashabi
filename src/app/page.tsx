@@ -275,9 +275,13 @@ export default async function Home() {
               Free Books &amp; Novels
             </h2>
           </div>
-          <span className="text-xs text-[var(--text-muted)]">
-            Click any book cover to read chapters directly inside Ashabi
-          </span>
+          <Link
+            href="/books"
+            className="neu-pill-active inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold"
+          >
+            <span>Explore Full Books Catalogue (70,000+)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-6">
@@ -335,10 +339,10 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3 justify-end">
+        <div className="lg:col-span-4 flex flex-wrap items-center gap-3 justify-end">
           <Link
             href={`/read/${neonLagos.slug}/${neonLagos.chapters[0].slug}`}
-            className="neu-pill-active inline-flex items-center justify-center gap-2.5 min-h-[50px] px-6 rounded-full text-xs sm:text-sm font-extrabold"
+            className="neu-pill-active inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold"
           >
             <BookOpen className="w-4 h-4" />
             <span>Open Vertical Comic Reader</span>
@@ -346,20 +350,21 @@ export default async function Home() {
 
           <Link
             href="/welcome"
-            className="neu-pill inline-flex items-center justify-center gap-2.5 min-h-[50px] px-6 rounded-full text-xs sm:text-sm font-bold text-[var(--ivory)]"
+            className="neu-pill inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-[var(--ivory)]"
           >
             <Feather className="w-4 h-4 text-[var(--gold-bright)]" />
-            <span>Read Full Founder’s Welcome Page</span>
+            <span>Founder’s Note</span>
           </Link>
 
           <a
             href={WHATSAPP_URL}
             target="_blank"
             rel="noreferrer"
-            className="whatsapp-glass-btn inline-flex items-center justify-center gap-2.5 min-h-[50px] px-6 rounded-full text-xs sm:text-sm font-extrabold"
+            aria-label="Contact the Founder on WhatsApp"
+            title="Contact the Founder on WhatsApp (+234 904 896 4270)"
+            className="whatsapp-glass-btn w-10 h-10 rounded-full grid place-items-center shrink-0"
           >
-            <Icon name="whatsapp" size={17} />
-            <span>Contact Founder on WhatsApp</span>
+            <Icon name="whatsapp" size={18} />
           </a>
         </div>
       </section>

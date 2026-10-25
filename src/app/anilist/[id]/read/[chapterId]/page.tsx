@@ -41,7 +41,7 @@ export default async function AniListMangaDexReaderPage({ params }: PageProps) {
     notFound();
   }
 
-  const [{ chapters }, pagesData] = await Promise.all([
+  const [{ chapters, availableLanguages }, pagesData] = await Promise.all([
     getMangaDexChaptersForTitle(media.title, media.nativeTitle),
     getMangaDexChapterPages(chapterId),
   ]);
@@ -56,6 +56,7 @@ export default async function AniListMangaDexReaderPage({ params }: PageProps) {
       pages: pagesData.pageUrls.length,
       publishAt: new Date().toISOString(),
       language: "en",
+      languageName: "English",
       scanlationGroup: "Ashabi Reader",
     };
 
@@ -67,6 +68,7 @@ export default async function AniListMangaDexReaderPage({ params }: PageProps) {
         category={media.category}
         currentChapter={currentChapter}
         allChapters={chapters}
+        availableLanguages={availableLanguages}
         pagesData={pagesData}
       />
     </main>

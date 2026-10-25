@@ -1,3 +1,5 @@
+import { cachedRateLimitedFetch } from "@/lib/rate-limit";
+
 export interface BookChapter {
   number: number;
   title: string;
@@ -18,7 +20,30 @@ export interface PublicBook {
   gutenbergUrl: string;
 }
 
+export interface BookCatalogueResult {
+  books: PublicBook[];
+  totalCount: number;
+  currentPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 const GUTENDEX_ENDPOINT = "https://gutendex.com/books";
+
+export const BOOK_CATALOGUE_TOPICS = [
+  { label: "All Classics & Novels", value: "All" },
+  { label: "African History & Tales", value: "africa" },
+  { label: "Fantasy Worlds", value: "fantasy" },
+  { label: "Science Fiction", value: "science fiction" },
+  { label: "Adventure & Epics", value: "adventure" },
+  { label: "Mythology & Folklore", value: "mythology" },
+  { label: "Horror & Gothic", value: "horror" },
+  { label: "Mystery & Detective", value: "mystery" },
+  { label: "Romance", value: "romance" },
+  { label: "Historical Fiction", value: "historical fiction" },
+  { label: "Philosophy & Wisdom", value: "philosophy" },
+  { label: "Poetry & Drama", value: "poetry" },
+] as const;
 
 interface RawGutendexBook {
   id: number;
@@ -113,7 +138,7 @@ function parseFullTextIntoChapters(
     return [
       {
         number: 1,
-        title: "Chapter 1 — Opening",
+        title: "Chapter I",
         paragraphs: [fallbackSummary],
       },
     ];
@@ -121,7 +146,7 @@ function parseFullTextIntoChapters(
 
   const chapters: BookChapter[] = [];
   const PARAGRAPHS_PER_CHAPTER = 24;
-  const maxChapters = 45;
+  const maxChapters = 60;
 
   for (
     let i = 0;
@@ -131,15 +156,12 @@ function parseFullTextIntoChapters(
     const slice = allParagraphs.slice(i, i + PARAGRAPHS_PER_CHAPTER);
     const chNum = chapters.length + 1;
 
-    // Detect if the first paragraph in this slice looks like a chapter heading
     const firstPara = slice[0] ?? "";
     const headingMatch = firstPara.match(
       /^(CHAPTER|BOOK|PART|LETTER|ACT|SCENE|STAVE)\s+([IVXLCDM0-9]+[:.\s-]*.*)/i,
     );
 
-    const title = headingMatch
-      ? firstPara.slice(0, 68)
-      : `Chapter ${chNum}`;
+    const title = headingMatch ? firstPara.slice(0, 68) : `Chapter ${chNum}`;
 
     chapters.push({
       number: chNum,
@@ -154,39 +176,86 @@ function parseFullTextIntoChapters(
 export async function getFeaturedBooks(
   topic = "fantasy",
 ): Promise<PublicBook[]> {
-  try {
-    const res = await fetch(
-      `${GUTENDEX_ENDPOINT}?topic=${encodeURIComponent(topic)}&sort=popular`,
-      { next: { revalidate: 3600 } },
-    );
-    if (!res.ok) throw new Error(`Gutendex HTTP ${res.status}`);
-    const data = await res.json();
-    const results: RawGutendexBook[] = data?.results ?? [];
-    if (results.length === 0) return FALLBACK_BOOKS;
-    return results.slice(0, 12).map(normalizeBook);
-  } catch {
-    return FALLBACK_BOOKS;
-  }
+  return cachedRateLimitedFetch(
+    `books:featured:${topic}`,
+    "gutendex",
+    3600,
+    async () => {
+      try {
+        const res = await fetch(
+          `${GUTENDEX_ENDPOINT}?topic=${encodeURIComponent(topic)}&sort=popular`,
+          { next: { revalidate: 3600 } },
+        );
+        if (!res.ok) throw new Error(`Gutendex HTTP ${res.status}`);
+        const data = await res.json();
+        const results: RawGutendexBook[] = data?.results ?? [];
+        if (results.length === 0) return FALLBACK_BOOKS;
+        return results.slice(0, 12).map(normalizeBook);
+      } catch {
+        return FALLBACK_BOOKS;
+      }
+    },
+  );
+}
+
+export async function browseBookCatalogue(params: {
+  query?: string;
+  topic?: string;
+  sort?: "popular" | "ascending" | "descending";
+  page?: number;
+}): Promise<BookCatalogueResult> {
+  const page = Math.max(1, params.page ?? 1);
+  const sort = params.sort ?? "popular";
+  const query = params.query?.trim() ?? "";
+  const topic = params.topic?.trim() ?? "All";
+
+  const cacheKey = `books:catalogue:q=${query}:t=${topic}:s=${sort}:p=${page}`;
+
+  return cachedRateLimitedFetch(cacheKey, "gutendex", 1800, async () => {
+    try {
+      const sp = new URLSearchParams();
+      if (query) sp.set("search", query);
+      if (topic && topic !== "All") sp.set("topic", topic);
+      sp.set("sort", sort);
+      if (page > 1) sp.set("page", String(page));
+
+      const url = `${GUTENDEX_ENDPOINT}?${sp.toString()}`;
+      const res = await fetch(url, { next: { revalidate: 1800 } });
+      if (!res.ok) throw new Error(`Gutendex catalogue HTTP ${res.status}`);
+      const data = await res.json();
+      const results: RawGutendexBook[] = data?.results ?? [];
+      const books =
+        results.length > 0 ? results.map(normalizeBook) : FALLBACK_BOOKS;
+
+      return {
+        books,
+        totalCount: data?.count ?? books.length,
+        currentPage: page,
+        hasNextPage: Boolean(data?.next),
+        hasPrevPage: page > 1,
+      };
+    } catch {
+      return {
+        books: FALLBACK_BOOKS,
+        totalCount: FALLBACK_BOOKS.length,
+        currentPage: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      };
+    }
+  });
 }
 
 export async function searchPublicBooks(params: {
   query?: string;
   topic?: string;
 }): Promise<PublicBook[]> {
-  try {
-    const sp = new URLSearchParams();
-    if (params.query?.trim()) sp.set("search", params.query.trim());
-    if (params.topic && params.topic !== "All") sp.set("topic", params.topic);
-
-    const url = `${GUTENDEX_ENDPOINT}${sp.size ? `?${sp.toString()}` : ""}`;
-    const res = await fetch(url, { next: { revalidate: 1800 } });
-    if (!res.ok) throw new Error(`Gutendex search HTTP ${res.status}`);
-    const data = await res.json();
-    const results: RawGutendexBook[] = data?.results ?? [];
-    return results.slice(0, 15).map(normalizeBook);
-  } catch {
-    return FALLBACK_BOOKS;
-  }
+  const res = await browseBookCatalogue({
+    query: params.query,
+    topic: params.topic,
+    page: 1,
+  });
+  return res.books.slice(0, 18);
 }
 
 export async function getPublicBookById(id: number): Promise<{
@@ -194,71 +263,78 @@ export async function getPublicBookById(id: number): Promise<{
   chapters: BookChapter[];
   excerptParagraphs: string[];
 } | null> {
-  try {
-    const res = await fetch(`${GUTENDEX_ENDPOINT}/${id}`, {
-      next: { revalidate: 3600 },
-    });
-    let book: PublicBook | undefined;
-    if (res.ok) {
-      const raw: RawGutendexBook = await res.json();
-      book = normalizeBook(raw);
-    } else {
-      book = FALLBACK_BOOKS.find((b) => b.id === id);
-    }
-    if (!book) return null;
-
-    let chapters: BookChapter[] = [];
-    const textCandidateUrls = [
-      book.readTextUrl,
-      `https://www.gutenberg.org/cache/epub/${book.id}/pg${book.id}.txt`,
-    ].filter((u): u is string => Boolean(u));
-
-    for (const textUrl of textCandidateUrls) {
+  return cachedRateLimitedFetch(
+    `books:detail:${id}`,
+    "gutendex",
+    3600,
+    async () => {
       try {
-        const textRes = await fetch(textUrl, {
+        const res = await fetch(`${GUTENDEX_ENDPOINT}/${id}`, {
           next: { revalidate: 3600 },
         });
-        if (textRes.ok) {
-          const fullText = await textRes.text();
-          chapters = parseFullTextIntoChapters(fullText, book.summary);
-          if (chapters.length > 0) break;
+        let book: PublicBook | undefined;
+        if (res.ok) {
+          const raw: RawGutendexBook = await res.json();
+          book = normalizeBook(raw);
+        } else {
+          book = FALLBACK_BOOKS.find((b) => b.id === id);
         }
+        if (!book) return null;
+
+        let chapters: BookChapter[] = [];
+        const textCandidateUrls = [
+          book.readTextUrl,
+          `https://www.gutenberg.org/cache/epub/${book.id}/pg${book.id}.txt`,
+        ].filter((u): u is string => Boolean(u));
+
+        for (const textUrl of textCandidateUrls) {
+          try {
+            const textRes = await fetch(textUrl, {
+              next: { revalidate: 3600 },
+            });
+            if (textRes.ok) {
+              const fullText = await textRes.text();
+              chapters = parseFullTextIntoChapters(fullText, book.summary);
+              if (chapters.length > 0) break;
+            }
+          } catch {
+            // Try next candidate URL
+          }
+        }
+
+        if (chapters.length === 0) {
+          chapters = [
+            {
+              number: 1,
+              title: "Chapter I",
+              paragraphs: [book.summary],
+            },
+          ];
+        }
+
+        return {
+          book,
+          chapters,
+          excerptParagraphs: chapters[0]?.paragraphs ?? [book.summary],
+        };
       } catch {
-        // Try next candidate URL
+        const fallback = FALLBACK_BOOKS.find((b) => b.id === id);
+        if (!fallback) return null;
+        const fallbackChapters: BookChapter[] = [
+          {
+            number: 1,
+            title: "Chapter I",
+            paragraphs: [fallback.summary],
+          },
+        ];
+        return {
+          book: fallback,
+          chapters: fallbackChapters,
+          excerptParagraphs: [fallback.summary],
+        };
       }
-    }
-
-    if (chapters.length === 0) {
-      chapters = [
-        {
-          number: 1,
-          title: "Chapter 1 — Opening",
-          paragraphs: [book.summary],
-        },
-      ];
-    }
-
-    return {
-      book,
-      chapters,
-      excerptParagraphs: chapters[0]?.paragraphs ?? [book.summary],
-    };
-  } catch {
-    const fallback = FALLBACK_BOOKS.find((b) => b.id === id);
-    if (!fallback) return null;
-    const fallbackChapters: BookChapter[] = [
-      {
-        number: 1,
-        title: "Chapter 1 — Opening",
-        paragraphs: [fallback.summary],
-      },
-    ];
-    return {
-      book: fallback,
-      chapters: fallbackChapters,
-      excerptParagraphs: [fallback.summary],
-    };
-  }
+    },
+  );
 }
 
 export const FALLBACK_BOOKS: PublicBook[] = [
@@ -342,5 +418,88 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     readHtmlUrl: "https://www.gutenberg.org/ebooks/1727.html.images",
     readTextUrl: "https://www.gutenberg.org/cache/epub/1727/pg1727.txt",
     gutenbergUrl: "https://www.gutenberg.org/ebooks/1727",
+  },
+  {
+    id: 1342,
+    title: "Pride and Prejudice",
+    author: "Jane Austen",
+    coverImage:
+      "https://www.gutenberg.org/cache/epub/1342/pg1342.cover.medium.jpg",
+    summary:
+      "Elizabeth Bennet navigates wit, family expectations, and societal pride when the enigmatic Mr. Darcy arrives in Hertfordshire.",
+    subjects: ["Romance", "Classic", "Society"],
+    downloadCount: 84200,
+    readHtmlUrl: "https://www.gutenberg.org/ebooks/1342.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/1342/pg1342.txt",
+    gutenbergUrl: "https://www.gutenberg.org/ebooks/1342",
+  },
+  {
+    id: 1661,
+    title: "The Adventures of Sherlock Holmes",
+    author: "Arthur Conan Doyle",
+    coverImage:
+      "https://www.gutenberg.org/cache/epub/1661/pg1661.cover.medium.jpg",
+    summary:
+      "Consulting detective Sherlock Holmes and Dr. John Watson solve London's most baffling mysteries from 221B Baker Street.",
+    subjects: ["Mystery", "Detective", "Crime"],
+    downloadCount: 61500,
+    readHtmlUrl: "https://www.gutenberg.org/ebooks/1661.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/1661/pg1661.txt",
+    gutenbergUrl: "https://www.gutenberg.org/ebooks/1661",
+  },
+  {
+    id: 1184,
+    title: "The Count of Monte Cristo",
+    author: "Alexandre Dumas",
+    coverImage:
+      "https://www.gutenberg.org/cache/epub/1184/pg1184.cover.medium.jpg",
+    summary:
+      "Wrongfully imprisoned in the Château d'If, Edmond Dantès escapes, unearths a legendary treasure, and orchestrates a masterwork of justice and vengeance.",
+    subjects: ["Adventure", "Historical", "Revenge"],
+    downloadCount: 58900,
+    readHtmlUrl: "https://www.gutenberg.org/ebooks/1184.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/1184/pg1184.txt",
+    gutenbergUrl: "https://www.gutenberg.org/ebooks/1184",
+  },
+  {
+    id: 2701,
+    title: "Moby Dick; Or, The Whale",
+    author: "Herman Melville",
+    coverImage:
+      "https://www.gutenberg.org/cache/epub/2701/pg2701.cover.medium.jpg",
+    summary:
+      "Ishmael boards the whaling ship Pequod, commanded by the obsessed Captain Ahab in his relentless pursuit of the great white whale across the world's oceans.",
+    subjects: ["Sea Stories", "Adventure", "Epic"],
+    downloadCount: 72100,
+    readHtmlUrl: "https://www.gutenberg.org/ebooks/2701.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/2701/pg2701.txt",
+    gutenbergUrl: "https://www.gutenberg.org/ebooks/2701",
+  },
+  {
+    id: 43,
+    title: "The Strange Case of Dr. Jekyll and Mr. Hyde",
+    author: "Robert Louis Stevenson",
+    coverImage: "https://www.gutenberg.org/cache/epub/43/pg43.cover.medium.jpg",
+    summary:
+      "London lawyer Gabriel Utterson investigates the sinister link between his respected friend Dr. Henry Jekyll and the ruthless Edward Hyde.",
+    subjects: ["Gothic", "Mystery", "Psychological"],
+    downloadCount: 51300,
+    readHtmlUrl: "https://www.gutenberg.org/ebooks/43.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/43/pg43.txt",
+    gutenbergUrl: "https://www.gutenberg.org/ebooks/43",
+  },
+  {
+    id: 120,
+    title: "Treasure Island",
+    author: "Robert Louis Stevenson",
+    coverImage:
+      "https://www.gutenberg.org/cache/epub/120/pg120.cover.medium.jpg",
+    summary:
+      "Young Jim Hawkins discovers a pirate treasure map and sets sail aboard the Hispaniola alongside the cunning Long John Silver.",
+    subjects: ["Pirates", "Adventure", "Classic"],
+    downloadCount: 44800,
+    readHtmlUrl: "https://www.gutenberg.org/ebooks/120.html.images",
+    readTextUrl: "https://www.gutenberg.org/cache/epub/120/pg120.txt",
+    gutenbergUrl: "https://www.gutenberg.org/ebooks/120",
   },
 ];
