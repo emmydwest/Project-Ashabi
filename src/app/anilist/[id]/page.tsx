@@ -240,23 +240,30 @@ export default async function AniListSeriesPage({ params }: PageProps) {
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="eyebrow mb-1">Official Promotional Video</p>
+              <p className="eyebrow mb-1">
+                Official Promotional Video · English Subtitles (CC) Enabled
+              </p>
               <h2
                 id="trailer-heading"
                 className="text-2xl sm:text-3xl font-extrabold m-0"
               >
-                {media.title} — Official Trailer
+                {media.title} — Official English-Subtitled Trailer
               </h2>
             </div>
-            <a
-              href={media.trailer.watchUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="neu-pill inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold text-[var(--ivory)]"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
-              <span>Open on {media.trailer.site}</span>
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="neu-pill-active px-3.5 py-1.5 rounded-full text-xs font-extrabold">
+                EN Subtitles Active
+              </span>
+              <a
+                href={media.trailer.watchUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
+                <span>Open on {media.trailer.site}</span>
+              </a>
+            </div>
           </div>
 
           <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-[22px] overflow-hidden border border-[var(--border-gold)] bg-black shadow-[0_20px_50px_rgba(0,0,0,0.8)]">

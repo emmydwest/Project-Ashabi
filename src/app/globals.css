@@ -2875,3 +2875,93 @@ img {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ============================================================
+   3D OPEN-BOOK PAGE-FLIP ANIMATION
+   ============================================================ */
+.book-perspective {
+  perspective: 2200px;
+  transform-style: preserve-3d;
+}
+
+@keyframes bookLeafTurnForward {
+  0% {
+    transform: rotateY(0deg);
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.18);
+  }
+  45% {
+    transform: rotateY(-88deg) skewY(-1.5deg);
+    box-shadow: -34px 0 65px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    transform: rotateY(-180deg);
+    box-shadow: 12px 0 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes bookLeafTurnBackward {
+  0% {
+    transform: rotateY(0deg);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.18);
+  }
+  45% {
+    transform: rotateY(88deg) skewY(1.5deg);
+    box-shadow: 34px 0 65px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    transform: rotateY(180deg);
+    box-shadow: -12px 0 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes bookSingleFlipNext {
+  0% {
+    transform: perspective(1800px) rotateY(0deg);
+    opacity: 1;
+  }
+  40% {
+    transform: perspective(1800px) rotateY(-26deg) scale(0.985);
+    opacity: 0.82;
+  }
+  100% {
+    transform: perspective(1800px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes bookSingleFlipPrev {
+  0% {
+    transform: perspective(1800px) rotateY(0deg);
+    opacity: 1;
+  }
+  40% {
+    transform: perspective(1800px) rotateY(26deg) scale(0.985);
+    opacity: 0.82;
+  }
+  100% {
+    transform: perspective(1800px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+.book-flip-leaf-next {
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  animation: bookLeafTurnForward 0.56s cubic-bezier(0.32, 0.08, 0.24, 1) forwards;
+}
+
+.book-flip-leaf-prev {
+  transform-origin: right center;
+  transform-style: preserve-3d;
+  animation: bookLeafTurnBackward 0.56s cubic-bezier(0.32, 0.08, 0.24, 1) forwards;
+}
+
+.book-spread-flip-next {
+  transform-origin: center center;
+  animation: bookSingleFlipNext 0.52s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.book-spread-flip-prev {
+  transform-origin: center center;
+  animation: bookSingleFlipPrev 0.52s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
