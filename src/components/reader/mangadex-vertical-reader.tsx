@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AfricanOriginalsReaderNotice } from "@/components/legal/african-originals-reader-notice";
+import { ReaderModeToggle } from "@/components/reader/reader-mode-toggle";
 import type {
   MangaDexChapterPages,
   MangaDexChapterSummary,
@@ -84,8 +85,11 @@ export function MangaDexVerticalReader({
     <div className="min-h-screen bg-[#030508] text-[var(--text)] pb-24">
       <AfricanOriginalsReaderNotice contentType="Manhwa / Manga" />
 
-      {/* Top Reader Controls */}
-      <div className="sticky top-20 z-40 border-b border-white/10 bg-[#05080c]/92 backdrop-blur-2xl">
+      {/* Top Reader Controls (Hidden when Immersive Reader Mode is active) */}
+      <div
+        data-reader-toolbar="true"
+        className="sticky top-20 z-40 border-b border-white/10 bg-[#05080c]/92 backdrop-blur-2xl"
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           {/* Left: Back to Series + Title */}
           <div className="flex items-center gap-3 min-w-0">
@@ -169,14 +173,16 @@ export function MangaDexVerticalReader({
             ) : null}
           </div>
 
-          {/* Right: Quality & Width Toggles */}
-          <div className="hidden lg:flex items-center gap-2">
+          {/* Right: Reader Mode + Quality & Width Toggles */}
+          <div className="flex items-center gap-2">
+            <ReaderModeToggle />
+
             <button
               type="button"
               onClick={() =>
                 setQuality((q) => (q === "saver" ? "hd" : "saver"))
               }
-              className="neu-pill inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--ivory)] cursor-pointer"
+              className="hidden lg:inline-flex neu-pill items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-[var(--ivory)] cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
               <span>{quality === "hd" ? "HD Pages" : "Fast Saver"}</span>
@@ -185,7 +191,7 @@ export function MangaDexVerticalReader({
             <button
               type="button"
               onClick={() => setWideMode((w) => !w)}
-              className="neu-pill inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--ivory)] cursor-pointer"
+              className="hidden lg:inline-flex neu-pill items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-[var(--ivory)] cursor-pointer"
             >
               {wideMode ? (
                 <Minimize2 className="w-3.5 h-3.5 text-[var(--gold)]" />

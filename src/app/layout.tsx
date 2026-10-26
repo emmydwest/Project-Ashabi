@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { Header, Footer } from "@/components/layout/header";
+import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -67,6 +68,7 @@ export default function RootLayout({
         <Header />
         {children}
         <Footer />
+        <CookieConsentBanner />
       </body>
     </html>
   );

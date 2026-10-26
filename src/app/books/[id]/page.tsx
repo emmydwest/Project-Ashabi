@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
-  Download,
   Feather,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { SafeImage as Image } from "@/components/ui/safe-image";
 import { BookChapterReader } from "@/components/reader/book-chapter-reader";
@@ -61,7 +61,11 @@ export default async function BookReaderPage({ params }: PageProps) {
       className="max-w-6xl mx-auto px-4 sm:px-8 py-10 pb-24 space-y-14"
     >
       {/* Top Back Navigation */}
-      <nav aria-label="Breadcrumb" className="flex items-center justify-between">
+      <nav
+        data-hide-in-reader-mode="true"
+        aria-label="Breadcrumb"
+        className="flex items-center justify-between"
+      >
         <Link
           href="/books"
           className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
@@ -70,12 +74,15 @@ export default async function BookReaderPage({ params }: PageProps) {
           <span>Back to Books &amp; Novels Catalogue</span>
         </Link>
         <span className="text-xs text-[var(--text-muted)]">
-          Open-Book Spread Reader · {chapters.length} Chapters
+          Open-Book Spread Reader · {chapters.length} Complete Chapters
         </span>
       </nav>
 
       {/* Book Hero Card */}
-      <section className="liquid-glass-gold rounded-[32px] p-6 sm:p-10 lg:p-12 grid md:grid-cols-12 gap-8 items-center">
+      <section
+        data-hide-in-reader-mode="true"
+        className="liquid-glass-gold rounded-[32px] p-6 sm:p-10 lg:p-12 grid md:grid-cols-12 gap-8 items-center"
+      >
         <div className="md:col-span-4 lg:col-span-3 flex justify-center">
           <div className="relative w-48 sm:w-56 aspect-[2/3] rounded-[20px] overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
             <Image
@@ -131,22 +138,15 @@ export default async function BookReaderPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <a
               href="#chapter-reader"
-              className="neu-pill-active inline-flex items-center gap-2 px-6 py-3.5 rounded-full text-xs sm:text-sm font-extrabold"
+              className="neu-pill-active inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-extrabold"
             >
               <BookOpen className="w-4 h-4" />
               <span>Read Full Novel Below ({chapters.length} Chapters)</span>
             </a>
-            {book.epubUrl ? (
-              <a
-                href={book.epubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="neu-pill inline-flex items-center gap-2 px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
-              >
-                <Download className="w-4 h-4 text-[var(--gold-bright)]" />
-                <span>Download EPUB</span>
-              </a>
-            ) : null}
+            <span className="neu-pill inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-[var(--ivory)]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
+              <span>Third-Party Public-Domain Archive</span>
+            </span>
           </div>
         </div>
       </section>
@@ -159,7 +159,7 @@ export default async function BookReaderPage({ params }: PageProps) {
       />
 
       {/* More Books Shelf */}
-      <section className="space-y-6">
+      <section data-hide-in-reader-mode="true" className="space-y-6">
         <h2 className="text-2xl font-extrabold m-0">
           More Free Novels &amp; Books
         </h2>

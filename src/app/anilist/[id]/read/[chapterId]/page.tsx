@@ -42,7 +42,11 @@ export default async function AniListMangaDexReaderPage({ params }: PageProps) {
   }
 
   const [{ chapters, availableLanguages }, pagesData] = await Promise.all([
-    getMangaDexChaptersForTitle(media.title, media.nativeTitle),
+    getMangaDexChaptersForTitle(
+      media.title,
+      media.nativeTitle,
+      media.chapters,
+    ),
     getMangaDexChapterPages(chapterId),
   ]);
 

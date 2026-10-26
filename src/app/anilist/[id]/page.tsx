@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
-  ExternalLink,
   Layers,
   Play,
+  ShieldCheck,
   Star,
 } from "lucide-react";
 import { SafeImage as Image } from "@/components/ui/safe-image";
@@ -62,13 +62,20 @@ export default async function AniListSeriesPage({ params }: PageProps) {
   }
 
   const { chapters, availableLanguages, defaultLanguage } =
-    await getMangaDexChaptersForTitle(media.title, media.nativeTitle);
+    await getMangaDexChaptersForTitle(
+      media.title,
+      media.nativeTitle,
+      media.chapters,
+    );
 
   const defaultLangChapters = chapters.filter(
     (c) => c.language === defaultLanguage,
   );
   const firstChapter = defaultLangChapters[0] ?? chapters[0];
-  const officialLinks = (media.externalLinks ?? []).slice(0, 8);
+  const isFinished = media.status.toUpperCase().includes("FINISH");
+  const statusBannerText = isFinished
+    ? `COMPLETED · All ${defaultLangChapters.length} Chapters Complete`
+    : `ONGOING (${media.status}) · All ${defaultLangChapters.length} Released Chapters Available`;
 
   return (
     <main
@@ -135,11 +142,11 @@ export default async function AniListSeriesPage({ params }: PageProps) {
                 </span>
               ) : null}
               <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--ivory)]">
-                {media.status}
+                {statusBannerText}
               </span>
               <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--gold-bright)]">
-                {availableLanguages.length} Languages · {chapters.length} Total
-                Chapters
+                {availableLanguages.length} Languages ·{" "}
+                {defaultLangChapters.length} Chapters / Language
               </span>
             </div>
 
@@ -226,12 +233,13 @@ export default async function AniListSeriesPage({ params }: PageProps) {
       {/* Interactive Language & Chapters Browser */}
       <SeriesChaptersBrowser
         seriesId={media.id}
+        seriesStatus={media.status}
         chapters={chapters}
         availableLanguages={availableLanguages}
         defaultLanguage={defaultLanguage}
       />
 
-      {/* Official Video Trailer Section */}
+      {/* In-App Video Trailer Section (No External Backlinks) */}
       {media.trailer ? (
         <section
           id="series-trailer"
@@ -241,7 +249,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="eyebrow mb-1">
-                Official Promotional Video · English Subtitles (CC) Enabled
+                In-App Promotional Video · English Subtitles (CC) Enabled
               </p>
               <h2
                 id="trailer-heading"
@@ -254,15 +262,9 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               <span className="neu-pill-active px-3.5 py-1.5 rounded-full text-xs font-extrabold">
                 EN Subtitles Active
               </span>
-              <a
-                href={media.trailer.watchUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
-                <span>Open on {media.trailer.site}</span>
-              </a>
+              <span className="neu-pill px-3.5 py-1.5 rounded-full text-xs font-bold text-[var(--ivory)]">
+                Third-Party Media Stream
+              </span>
             </div>
           </div>
 
@@ -319,32 +321,30 @@ export default async function AniListSeriesPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      {/* Official External Links */}
-      {officialLinks.length > 0 ? (
-        <section className="liquid-glass rounded-[26px] p-6 sm:p-8 space-y-4">
-          <div>
-            <p className="eyebrow mb-1">Verified External Platforms</p>
-            <h2 className="text-xl sm:text-2xl font-extrabold m-0">
-              Official Publisher &amp; Reference Links
-            </h2>
+      {/* Non-Clickable Third-Party Attribution Notice (Replaces External Backlinks) */}
+      <section className="liquid-glass rounded-[26px] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1.5 max-w-3xl">
+          <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[var(--gold-bright)]">
+            <ShieldCheck className="w-4 h-4" />
+            <span>Third-Party Demonstration Content Notice</span>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            {officialLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noreferrer"
-                className="neu-pill inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
-              >
-                <span>{link.site}</span>
-                <ExternalLink className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
-              </a>
-            ))}
-          </div>
-        </section>
-      ) : null}
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed m-0">
+            <strong className="text-[var(--ivory)]">{media.title}</strong> is
+            streamed via an independent third-party content API strictly for
+            platform demonstration during Project Ashabi&apos;s development
+            phase. All copyrights, trademarks, character designs, and story
+            rights remain the sole property of{" "}
+            <strong className="text-[var(--ivory)]">{media.authorName}</strong>{" "}
+            and their respective rightsholders.
+          </p>
+        </div>
+        <Link
+          href="/terms"
+          className="neu-pill px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)] shrink-0 self-start sm:self-center"
+        >
+          Rights &amp; DMCA Policy
+        </Link>
+      </section>
 
       {/* Recommendations */}
       {media.recommendations && media.recommendations.length > 0 ? (

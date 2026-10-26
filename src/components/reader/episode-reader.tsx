@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { ReaderModeToggle } from "@/components/reader/reader-mode-toggle";
 import type { Chapter, Story } from "@/lib/stories";
 import {
   loadReaderState,
@@ -134,7 +135,10 @@ export function EpisodeReader({
   return (
     <main id="main" className="min-h-screen bg-[var(--bg-0)] pb-24">
       {/* Sticky Reader Subheader */}
-      <div className="sticky top-[96px] z-10 border-b border-[var(--border)] bg-[rgba(5,7,10,0.88)] backdrop-blur-xl">
+      <div
+        data-hide-in-reader-mode="true"
+        className="sticky top-[80px] z-10 border-b border-[var(--border)] bg-[rgba(5,7,10,0.88)] backdrop-blur-xl"
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <Link
@@ -170,6 +174,8 @@ export function EpisodeReader({
             >
               {scrollPercent}%
             </span>
+
+            <ReaderModeToggle />
 
             <button
               type="button"
@@ -258,7 +264,10 @@ export function EpisodeReader({
       ) : null}
 
       {/* Episode Header */}
-      <header className="max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-6 text-center space-y-2">
+      <header
+        data-hide-in-reader-mode="true"
+        className="max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-6 text-center space-y-2"
+      >
         <p className="eyebrow">
           {story.format} · Episode {chapter.number} · Free on Ashabi
         </p>
@@ -382,8 +391,7 @@ export function EpisodeReader({
                   : `You’re caught up on ${story.title}`}
               </h2>
               <p className="text-sm text-[var(--text-muted)] mt-1">
-                Follow this story to see new episodes in your library as soon as
-                they release.
+                Follow this story to stay updated as new episodes release.
               </p>
             </div>
 
@@ -443,7 +451,7 @@ export function EpisodeReader({
                 }
               >
                 <Icon name="bookmark" size={16} />
-                <span>{saved ? "Saved in Library" : "Save"}</span>
+                <span>{saved ? "Saved" : "Save"}</span>
               </button>
 
               <button

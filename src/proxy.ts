@@ -4,28 +4,22 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // If user arrives at "/" without having visited the standalone "/welcome" page first,
-  // route them to "/welcome" (a true standalone page, not a popup).
+  // ALWAYS show the standalone "/welcome" Founder's Message whenever a visitor loads or reloads "/"
+  // without explicitly clicking through "?explore=1" from the Founder's page.
   if (pathname === "/") {
-    const welcomedCookie = request.cookies.get("ashabi_welcomed")?.value === "1";
     const exploringNow = searchParams.get("explore") === "1";
 
-    if (!welcomedCookie && !exploringNow) {
+    if (!exploringNow) {
       const welcomeUrl = request.nextUrl.clone();
       welcomeUrl.pathname = "/welcome";
-      return NextResponse.redirect(welcomeUrl);
+      const redirectRes = NextResponse.redirect(welcomeUrl);
+      redirectRes.cookies.delete("ashabi_welcomed");
+      return redirectRes;
     }
   }
 
   let response = NextResponse.next({ request });
-
-  if (pathname === "/" && searchParams.get("explore") === "1") {
-    response.cookies.set("ashabi_welcomed", "1", {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-      sameSite: "lax",
-    });
-  }
+  response.cookies.delete("ashabi_welcomed");
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

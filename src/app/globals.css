@@ -2813,9 +2813,18 @@ img {
 }
 
 .whatsapp-glass-btn {
+  width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  margin-left: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
   background: #25d366;
-  color: #04190b;
+  color: #04190b !important;
   border: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
   transition:
     transform 0.18s ease,
     filter 0.18s ease;
@@ -2964,4 +2973,16 @@ img {
 .book-spread-flip-prev {
   transform-origin: center center;
   animation: bookSingleFlipPrev 0.52s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* ============================================================
+   IMMERSIVE DISTRACTION-FREE READER MODE (HIDES ALL TABS & BARS)
+   ============================================================ */
+body.ashabi-reader-mode > header,
+body.ashabi-reader-mode > footer,
+body.ashabi-reader-mode nav[aria-label="Mobile bottom navigation"],
+body.ashabi-reader-mode [data-hide-in-reader-mode="true"],
+body.ashabi-reader-mode [data-reader-toolbar="true"],
+body.ashabi-reader-mode [data-cookie-banner="true"] {
+  display: none !important;
 }

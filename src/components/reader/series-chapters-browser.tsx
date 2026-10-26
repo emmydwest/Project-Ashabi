@@ -10,6 +10,7 @@ import type {
 
 interface Props {
   seriesId: number;
+  seriesStatus?: string;
   chapters: MangaDexChapterSummary[];
   availableLanguages: MangaDexLanguageOption[];
   defaultLanguage: string;
@@ -17,6 +18,7 @@ interface Props {
 
 export function SeriesChaptersBrowser({
   seriesId,
+  seriesStatus = "RELEASING",
   chapters,
   availableLanguages,
   defaultLanguage,
@@ -31,6 +33,7 @@ export function SeriesChaptersBrowser({
   const displayChapters =
     filteredChapters.length > 0 ? filteredChapters : chapters;
   const firstChapter = displayChapters[0];
+  const isFinished = seriesStatus.toUpperCase().includes("FINISH");
 
   return (
     <section
@@ -42,13 +45,18 @@ export function SeriesChaptersBrowser({
         <div className="space-y-1">
           <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--gold-bright)]">
             <Layers className="w-3.5 h-3.5" />
-            <span>In-App Vertical Strip Reader</span>
+            <span>
+              {isFinished
+                ? `Completed Series · All ${displayChapters.length} Chapters Available`
+                : `Ongoing Series (${seriesStatus}) · All ${displayChapters.length} Released Chapters Available`}
+            </span>
           </span>
           <h2
             id="chapters-heading"
             className="text-2xl sm:text-3xl font-extrabold m-0"
           >
-            Read Chapters on Ashabi ({displayChapters.length})
+            Read Complete Chapters on Ashabi (Ch. 1 – Ch.{" "}
+            {displayChapters.length})
           </h2>
         </div>
 

@@ -1,10 +1,5 @@
-import { ReaderLibrary } from "@/components/reader/reader-library";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "My Library",
-  description: "Your followed stories, saved reading list, and reading history on Ashabi.",
-};
-
-export default function LibraryPage() {
-  return <ReaderLibrary />;
+export default function LibraryRedirectPage() {
+  redirect("/discover");
 }

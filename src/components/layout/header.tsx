@@ -6,7 +6,6 @@ import {
   Feather,
   Flame,
   Home,
-  Library,
   Users,
 } from "lucide-react";
 import { Icon } from "@/components/icons";
@@ -74,13 +73,6 @@ export function Header() {
             <span>18+ Hub</span>
           </Link>
           <Link
-            href="/library"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
-          >
-            <Library className="w-3.5 h-3.5 text-[var(--gold)]" />
-            <span>Library</span>
-          </Link>
-          <Link
             href="/creators"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-[var(--text)] hover:text-[var(--gold-bright)] hover:bg-white/[0.04] transition-all"
           >
@@ -134,28 +126,31 @@ export function Footer() {
           <Link href="/discover">Discover Catalog</Link>
           <Link href="/books">Books &amp; Novels Catalogue</Link>
           <Link href="/mature">18+ Mature Catalogue</Link>
-          <Link href="/library">My Library</Link>
+          <Link href="/creators">Creators Studio</Link>
         </div>
         <div className="footer-links">
-          <strong>Vision &amp; Governance</strong>
+          <strong>Legal &amp; Governance</strong>
           <Link href="/welcome">Founder’s Welcome Page</Link>
-          <Link href="/about">Editorial Standards</Link>
-          <Link href="/terms">Terms of Service</Link>
+          <Link href="/terms">Terms &amp; DMCA Safe Harbor</Link>
           <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/cookies">Cookie &amp; Consent Policy</Link>
+          <Link href="/about">Editorial Standards</Link>
         </div>
         <div className="footer-statement">
           <span>African Stories.</span>
           <span>Limitless Worlds.</span>
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Contact the Founder on WhatsApp"
-            title="Contact the Founder on WhatsApp (+234 904 896 4270)"
-            className="whatsapp-glass-btn mt-3 w-10 h-10 rounded-full grid place-items-center"
-          >
-            <Icon name="whatsapp" size={18} />
-          </a>
+          <div className="pt-3 flex items-center md:justify-end">
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Contact the Founder on WhatsApp"
+              title="Contact the Founder on WhatsApp (+234 904 896 4270)"
+              className="whatsapp-glass-btn w-10 h-10 rounded-full grid place-items-center shrink-0"
+            >
+              <Icon name="whatsapp" size={18} />
+            </a>
+          </div>
         </div>
         <div className="footer-bottom">
           <span>

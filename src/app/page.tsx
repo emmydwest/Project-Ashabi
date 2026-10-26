@@ -12,6 +12,7 @@ import {
 import { Icon } from "@/components/icons";
 import { HomeComicStage } from "@/components/story/home-comic-stage";
 import { AniListHub } from "@/components/story/anilist-hub";
+import { ResetWelcomeOnReload } from "@/components/welcome/reset-welcome-on-reload";
 import { getAniListHomeFeed } from "@/lib/anilist";
 import { getFeaturedBooks } from "@/lib/books";
 import { getPublicStories } from "@/lib/stories";
@@ -34,6 +35,7 @@ export default async function Home() {
       id="main"
       className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 pt-8 pb-28 space-y-20"
     >
+      <ResetWelcomeOnReload />
       {/* 1. Liquid Glass Hero Spotlight */}
       <HomeComicStage
         spotlightItems={aniListFeed.spotlight}

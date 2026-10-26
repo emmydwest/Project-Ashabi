@@ -197,7 +197,7 @@ export default async function BooksCataloguePage({ searchParams }: PageProps) {
         </div>
 
         {/* Catalogue Pagination */}
-        <div className="pt-6 border-t border-white/10 flex items-center justify-between gap-4">
+        <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
           {catalogue.hasPrevPage ? (
             <Link
               href={buildPageHref(page - 1)}
@@ -210,9 +210,25 @@ export default async function BooksCataloguePage({ searchParams }: PageProps) {
             <span />
           )}
 
-          <span className="text-xs font-bold text-[var(--text-muted)]">
-            Page {page}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {Array.from(
+              { length: 7 },
+              (_, i) => Math.max(1, page - 3) + i,
+            ).map((pNum) => (
+              <Link
+                key={pNum}
+                href={buildPageHref(pNum)}
+                className={
+                  "w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold transition-all " +
+                  (pNum === page
+                    ? "neu-pill-active"
+                    : "neu-pill text-[var(--ivory)] hover:text-[var(--gold-bright)]")
+                }
+              >
+                {pNum}
+              </Link>
+            ))}
+          </div>
 
           {catalogue.hasNextPage ? (
             <Link

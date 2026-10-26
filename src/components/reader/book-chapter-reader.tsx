@@ -13,6 +13,7 @@ import {
   Sun,
 } from "lucide-react";
 import { AfricanOriginalsReaderNotice } from "@/components/legal/african-originals-reader-notice";
+import { ReaderModeToggle } from "@/components/reader/reader-mode-toggle";
 import type { BookChapter } from "@/lib/books";
 
 interface Props {
@@ -195,8 +196,11 @@ export function BookChapterReader({
     >
       <AfricanOriginalsReaderNotice contentType="Novel / Book" />
 
-      {/* Quiet Non-Sticky Top Book Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+      {/* Quiet Non-Sticky Top Book Controls (Hidden when Immersive Reader Mode is active) */}
+      <div
+        data-reader-toolbar="true"
+        className="flex flex-wrap items-center justify-between gap-3 px-2"
+      >
         {/* Chapter Table of Contents + Language Selector */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2">
@@ -240,8 +244,10 @@ export function BookChapterReader({
           </div>
         </div>
 
-        {/* Spread Mode, Font Size & Paper Theme */}
+        {/* Reader Mode, Spread Mode, Font Size & Paper Theme */}
         <div className="flex flex-wrap items-center gap-2">
+          <ReaderModeToggle />
+
           <button
             type="button"
             onClick={() => {

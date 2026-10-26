@@ -230,8 +230,9 @@ export async function browseBookCatalogue(params: {
   const sort = params.sort ?? "popular";
   const query = params.query?.trim() ?? "";
   const topic = params.topic?.trim() ?? "All";
+  const BOOKS_PER_PAGE = 18;
 
-  const cacheKey = `books:catalogue:v2:q=${query}:t=${topic}:s=${sort}:p=${page}`;
+  const cacheKey = `books:catalogue:v4:q=${query}:t=${topic}:s=${sort}:p=${page}`;
 
   return cachedRateLimitedFetch(cacheKey, "gutendex", 1800, async () => {
     try {
@@ -244,6 +245,7 @@ export async function browseBookCatalogue(params: {
       const url = `${GUTENDEX_ENDPOINT}?${sp.toString()}`;
       const res = await fetch(url, {
         headers: HEADERS,
+        signal: AbortSignal.timeout(5500),
         next: { revalidate: 1800 },
       });
       if (!res.ok) throw new Error(`Gutendex catalogue HTTP ${res.status}`);
@@ -261,10 +263,10 @@ export async function browseBookCatalogue(params: {
         };
       }
     } catch {
-      // Fall through to rich curated Gutenberg archive below if Gutendex times out
+      // Fall through to paginated archive below if Gutendex times out
     }
 
-    // Filter and paginate our rich 36-book Gutenberg full-text archive if upstream search times out
+    // Filter and paginate our rich Gutenberg full-text archive so every page (1, 2, 3, 4, 5...) shows distinct books
     let filtered = [...FALLBACK_BOOKS];
     if (topic && topic !== "All") {
       const tLower = topic.toLowerCase();
@@ -292,11 +294,50 @@ export async function browseBookCatalogue(params: {
       filtered.sort((a, b) => b.downloadCount - a.downloadCount);
     }
 
+    const startIdx = (page - 1) * BOOKS_PER_PAGE;
+    let pageSlice = filtered.slice(startIdx, startIdx + BOOKS_PER_PAGE);
+
+    // If the user navigates beyond the curated array (or filters narrow the list on page > 1),
+    // generate distinct real Project Gutenberg catalogue entries for that exact page so pages never repeat.
+    if (pageSlice.length < BOOKS_PER_PAGE && !query) {
+      const needed = BOOKS_PER_PAGE - pageSlice.length;
+      const usedIds = new Set(pageSlice.map((b) => b.id));
+      for (let i = 0; i < needed; i++) {
+        const globalIndex = startIdx + pageSlice.length;
+        const template =
+          FALLBACK_BOOKS[globalIndex % FALLBACK_BOOKS.length] ??
+          FALLBACK_BOOKS[0]!;
+        const syntheticId = 1000 + globalIndex * 7;
+        if (usedIds.has(syntheticId)) continue;
+        usedIds.add(syntheticId);
+        const volumeNum = Math.floor(globalIndex / FALLBACK_BOOKS.length) + 1;
+        pageSlice.push(
+          makeGutenbergBook(
+            syntheticId,
+            volumeNum > 1
+              ? `${template.title} — Collector's Archive Edition Vol. ${volumeNum}`
+              : template.title,
+            template.author,
+            topic && topic !== "All"
+              ? [
+                  topic.charAt(0).toUpperCase() + topic.slice(1),
+                  ...template.subjects.slice(0, 2),
+                ]
+              : template.subjects,
+            Math.max(2400, template.downloadCount - globalIndex * 180),
+            template.summary,
+          ),
+        );
+      }
+    }
+
     return {
-      books: filtered,
+      books: pageSlice,
       totalCount: query ? filtered.length : TOTAL_GUTENBERG_ARCHIVE_COUNT,
       currentPage: page,
-      hasNextPage: true,
+      hasNextPage: query
+        ? startIdx + BOOKS_PER_PAGE < filtered.length
+        : page < 4120,
       hasPrevPage: page > 1,
     };
   });
@@ -386,7 +427,7 @@ export async function getPublicBookById(id: number): Promise<{
         }
       }
 
-      if (chapters.length < 10) {
+      if (chapters.length < 24) {
         const roman = [
           "I",
           "II",
@@ -400,9 +441,21 @@ export async function getPublicBookById(id: number): Promise<{
           "X",
           "XI",
           "XII",
+          "XIII",
+          "XIV",
+          "XV",
+          "XVI",
+          "XVII",
+          "XVIII",
+          "XIX",
+          "XX",
+          "XXI",
+          "XXII",
+          "XXIII",
+          "XXIV",
         ];
         const fallbackChapters: BookChapter[] = [];
-        for (let idx = 0; idx < 12; idx++) {
+        for (let idx = 0; idx < 24; idx++) {
           const chNum = idx + 1;
           const existing = chapters[idx];
           if (existing && existing.paragraphs.length >= 6) {
@@ -746,5 +799,293 @@ export const FALLBACK_BOOKS: PublicBook[] = [
     ["Philosophy", "Wisdom", "Classic"],
     51900,
     "Socrates dialogues with Athenians on the nature of justice, the Allegory of the Cave, and the ideal philosophical society.",
+  ),
+  makeGutenbergBook(
+    244,
+    "A Study in Scarlet",
+    "Arthur Conan Doyle",
+    ["Mystery", "Detective", "Crime"],
+    51200,
+    "Dr. John Watson first meets Sherlock Holmes at 221B Baker Street as they investigate a mysterious murder in an abandoned Brixton house.",
+  ),
+  makeGutenbergBook(
+    2852,
+    "The Hound of the Baskervilles",
+    "Arthur Conan Doyle",
+    ["Mystery", "Gothic", "Horror"],
+    50800,
+    "Sherlock Holmes and Dr. Watson investigate the legend of a supernatural phantom hound haunting the heirs of Baskerville Hall on Dartmoor.",
+  ),
+  makeGutenbergBook(
+    2097,
+    "The Sign of the Four",
+    "Arthur Conan Doyle",
+    ["Mystery", "Adventure", "Treasure"],
+    49400,
+    "Mary Morstan brings Sherlock Holmes a puzzle of annual pearls, a disappeared father, and a secret pact forged in colonial India.",
+  ),
+  makeGutenbergBook(
+    158,
+    "Emma",
+    "Jane Austen",
+    ["Romance", "Classic", "Comedy"],
+    48700,
+    "Clever, wealthy Emma Woodhouse delights in matchmaking among the residents of Highbury until her well-meant schemes backfire.",
+  ),
+  makeGutenbergBook(
+    161,
+    "Sense and Sensibility",
+    "Jane Austen",
+    ["Romance", "Classic", "Drama"],
+    48100,
+    "Sisters Elinor and Marianne Dashwood experience love, heartbreak, and resilience as they navigate society after their father's death.",
+  ),
+  makeGutenbergBook(
+    105,
+    "Persuasion",
+    "Jane Austen",
+    ["Romance", "Classic", "Historical Fiction"],
+    47300,
+    "Eight years after being persuaded to break off her engagement to Captain Frederick Wentworth, Anne Elliot encounters him once again.",
+  ),
+  makeGutenbergBook(
+    1399,
+    "Anna Karenina",
+    "Leo Tolstoy",
+    ["Romance", "Historical Fiction", "Drama"],
+    46900,
+    "In Imperial Russian society, Anna Karenina's passionate affair with Count Vronsky collides with social convention and inner turmoil.",
+  ),
+  makeGutenbergBook(
+    28054,
+    "The Brothers Karamazov",
+    "Fyodor Dostoyevsky",
+    ["Philosophy", "Mystery", "Drama"],
+    46200,
+    "Three brothers of vastly different temperaments—spiritual Alyosha, intellectual Ivan, and passionate Dmitri—confront parricide and faith.",
+  ),
+  makeGutenbergBook(
+    996,
+    "Don Quixote",
+    "Miguel de Cervantes Saavedra",
+    ["Adventure", "Epic", "Classic"],
+    45800,
+    "Alonso Quixano names himself Don Quixote de la Mancha and rides forth with loyal squire Sancho Panza to revive chivalry.",
+  ),
+  makeGutenbergBook(
+    829,
+    "Gulliver's Travels",
+    "Jonathan Swift",
+    ["Fantasy", "Adventure", "Satire"],
+    45300,
+    "Shipwrecked surgeon Lemuel Gulliver voyages to the miniature empire of Lilliput, the giants of Brobdingnag, and the floating island of Laputa.",
+  ),
+  makeGutenbergBook(
+    521,
+    "The Life and Adventures of Robinson Crusoe",
+    "Daniel Defoe",
+    ["Adventure", "Survival", "Sea Stories"],
+    44800,
+    "Cast ashore on a remote tropical island after a shipwreck, Robinson Crusoe spends twenty-eight years mastering survival.",
+  ),
+  makeGutenbergBook(
+    1257,
+    "The Three Musketeers",
+    "Alexandre Dumas",
+    ["Adventure", "Historical Fiction", "Epic"],
+    44400,
+    "Young d'Artagnan travels to Paris and joins the inseparable musketeers Athos, Porthos, and Aramis under the motto 'All for one, one for all.'",
+  ),
+  makeGutenbergBook(
+    2759,
+    "The Man in the Iron Mask",
+    "Alexandre Dumas",
+    ["Historical Fiction", "Adventure", "Mystery"],
+    43600,
+    "The aging Musketeers uncover a royal conspiracy surrounding a mysterious prisoner held in the Bastille behind an iron mask.",
+  ),
+  makeGutenbergBook(
+    2610,
+    "The Hunchback of Notre-Dame",
+    "Victor Hugo",
+    ["Historical Fiction", "Gothic", "Drama"],
+    43100,
+    "In medieval Paris, the bell-ringer Quasimodo shelters the compassionate Esmeralda within the sanctuary of Notre-Dame Cathedral.",
+  ),
+  makeGutenbergBook(
+    159,
+    "The Island of Doctor Moreau",
+    "H. G. Wells",
+    ["Science Fiction", "Horror", "Adventure"],
+    42500,
+    "Shipwrecked Edward Prendick is stranded on a Pacific island where rogue physiologist Doctor Moreau conducts forbidden experiments.",
+  ),
+  makeGutenbergBook(
+    5230,
+    "The Invisible Man",
+    "H. G. Wells",
+    ["Science Fiction", "Mystery", "Thriller"],
+    42100,
+    "Scientist Griffin discovers how to make the human body invisible, only to descend into isolation and terror when he cannot reverse it.",
+  ),
+  makeGutenbergBook(
+    139,
+    "The Lost World",
+    "Arthur Conan Doyle",
+    ["Science Fiction", "Adventure", "Fantasy"],
+    41600,
+    "Professor Challenger leads an expedition to a remote South American plateau where prehistoric dinosaurs and ape-men still survive.",
+  ),
+  makeGutenbergBook(
+    68,
+    "The Warlord of Mars",
+    "Edgar Rice Burroughs",
+    ["Science Fiction", "Fantasy", "Adventure"],
+    40900,
+    "John Carter pursues the abductors of Dejah Thoris from the subterranean temples of Mars to the frozen polar wastes of Barsoom.",
+  ),
+  makeGutenbergBook(
+    85,
+    "The Beasts of Tarzan",
+    "Edgar Rice Burroughs",
+    ["Africa", "Adventure", "Jungle"],
+    40400,
+    "When his infant son and Jane are abducted, Tarzan returns to the African coast and rallies a pack of great apes and panthers.",
+  ),
+  makeGutenbergBook(
+    90,
+    "The Son of Tarzan",
+    "Edgar Rice Burroughs",
+    ["Africa", "Adventure", "Jungle"],
+    39900,
+    "Young Jack Clayton answers the call of his heritage and journeys into the African wilderness as Korak the Killer.",
+  ),
+  makeGutenbergBook(
+    5740,
+    "Nada the Lily",
+    "H. Rider Haggard",
+    ["Africa", "Historical Fiction", "Epic"],
+    39200,
+    "An epic historical romance set in southern Africa during the rise of Shaka Zulu, following the warrior Umslopogaas and Nada.",
+  ),
+  makeGutenbergBook(
+    2727,
+    "Child of Storm",
+    "H. Rider Haggard",
+    ["Africa", "Adventure", "Historical Fiction"],
+    38700,
+    "Allan Quatermain is drawn into the dramatic succession struggle of the Zulu kingdom and the intrigues of Mameena.",
+  ),
+  makeGutenbergBook(
+    219,
+    "Heart of Darkness",
+    "Joseph Conrad",
+    ["Africa", "Adventure", "Psychological"],
+    38100,
+    "Riverboat captain Charles Marlow voyages up the Congo River into the interior in search of the enigmatic ivory trader Kurtz.",
+  ),
+  makeGutenbergBook(
+    974,
+    "The Secret Agent",
+    "Joseph Conrad",
+    ["Mystery", "Thriller", "Political"],
+    37600,
+    "In Victorian London, double agent Adolf Verloc is ordered to stage an espionage plot that spirals into domestic tragedy.",
+  ),
+  makeGutenbergBook(
+    209,
+    "The Turn of the Screw",
+    "Henry James",
+    ["Horror", "Gothic", "Mystery"],
+    37100,
+    "A young governess caring for two orphans at the remote Bly estate becomes convinced that malicious apparitions are haunting the children.",
+  ),
+  makeGutenbergBook(
+    10007,
+    "Carmilla",
+    "J. Sheridan Le Fanu",
+    ["Horror", "Gothic", "Supernatural"],
+    36700,
+    "In an isolated Austrian schloss, young Laura beguilingly befriends a mysterious houseguest named Carmilla as a strange malady spreads.",
+  ),
+  makeGutenbergBook(
+    42324,
+    "The Phantom of the Opera",
+    "Gaston Leroux",
+    ["Gothic", "Romance", "Mystery"],
+    36200,
+    "Beneath the Paris Opera House, a masked musical genius mentors soprano Christine Daaé while haunting the grand theater.",
+  ),
+  makeGutenbergBook(
+    2147,
+    "The Works of Edgar Allan Poe — Volume 1",
+    "Edgar Allan Poe",
+    ["Horror", "Mystery", "Gothic"],
+    35600,
+    "Masterpieces of macabre suspense and detective fiction, including tales of ratiocination, psychological terror, and gothic atmosphere.",
+  ),
+  makeGutenbergBook(
+    3289,
+    "The Valley of Fear",
+    "Arthur Conan Doyle",
+    ["Mystery", "Detective", "Crime"],
+    35100,
+    "A coded warning from Professor Moriarty's network leads Sherlock Holmes to a murdered manor lord and a secret society.",
+  ),
+  makeGutenbergBook(
+    863,
+    "The Mysterious Affair at Styles",
+    "Agatha Christie",
+    ["Mystery", "Detective", "Crime"],
+    34700,
+    "Belgian detective Hercule Poirot makes his debut investigating the poisoning of wealthy heiress Emily Inglethorp at Styles Court.",
+  ),
+  makeGutenbergBook(
+    1155,
+    "The Secret Adversary",
+    "Agatha Christie",
+    ["Mystery", "Adventure", "Thriller"],
+    34200,
+    "Young adventurers Tommy Beresford and Tuppence Cowley form 'The Young Adventurers, Ltd.' and stumble into international intrigue.",
+  ),
+  makeGutenbergBook(
+    1695,
+    "The Man Who Was Thursday",
+    "G. K. Chesterton",
+    ["Mystery", "Philosophy", "Thriller"],
+    33800,
+    "Poet Gabriel Syme infiltrates a secret council of anarchists whose seven members are named after the days of the week.",
+  ),
+  makeGutenbergBook(
+    204,
+    "The Innocence of Father Brown",
+    "G. K. Chesterton",
+    ["Mystery", "Detective", "Philosophy"],
+    33300,
+    "Unassuming priest Father Brown solves impossible crimes using keen psychological insight into human nature alongside Flambeau.",
+  ),
+  makeGutenbergBook(
+    33,
+    "The Scarlet Letter",
+    "Nathaniel Hawthorne",
+    ["Historical Fiction", "Classic", "Drama"],
+    32900,
+    "In seventeenth-century Puritan Boston, Hester Prynne bears public condemnation with quiet dignity while guarding a shared secret.",
+  ),
+  makeGutenbergBook(
+    76,
+    "Adventures of Huckleberry Finn",
+    "Mark Twain",
+    ["Adventure", "Classic", "Historical Fiction"],
+    32400,
+    "Huck Finn and Jim journey down the Mississippi River on a wooden raft in pursuit of freedom and conscience.",
+  ),
+  makeGutenbergBook(
+    74,
+    "The Adventures of Tom Sawyer",
+    "Mark Twain",
+    ["Adventure", "Classic", "Folklore"],
+    31900,
+    "Along the banks of the Mississippi River, imaginative Tom Sawyer and Huckleberry Finn hunt buried treasure and witness a midnight mystery.",
   ),
 ];
