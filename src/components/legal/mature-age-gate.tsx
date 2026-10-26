@@ -19,46 +19,45 @@ export function MatureAgeGate({ children }: Props) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="mature-age-gate-title"
-          className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl"
+          className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/88 backdrop-blur-xl"
         >
-          <div className="liquid-glass max-w-md w-full rounded-[28px] p-7 sm:p-8 space-y-5 border border-[#ff6b6b]/35 shadow-[0_32px_90px_rgba(0,0,0,0.95)] text-center">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-[#ff6b6b]/15 border border-[#ff6b6b]/40 grid place-items-center text-[#ff7b7b]">
-              <ShieldAlert className="w-7 h-7" />
+          <div className="liquid-glass max-w-sm w-full rounded-2xl p-6 space-y-4 border border-[#ff6b6b]/30 text-center">
+            <div className="mx-auto w-11 h-11 rounded-xl bg-[#ff6b6b]/15 border border-[#ff6b6b]/35 grid place-items-center text-[#ff7b7b]">
+              <ShieldAlert className="w-5 h-5" />
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest text-[#ff8a8a] bg-[#ff6b6b]/15 border border-[#ff6b6b]/30">
-              <Flame className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest text-[#ff8a8a] bg-[#ff6b6b]/12 border border-[#ff6b6b]/25">
+              <Flame className="w-3 h-3" />
               <span>18+ Restricted Catalogue</span>
             </div>
 
             <h2
               id="mature-age-gate-title"
-              className="font-serif text-2xl sm:text-3xl font-bold text-[var(--text-strong)] m-0"
+              className="font-serif text-xl sm:text-2xl font-bold text-[var(--text-strong)] m-0"
             >
-              Age Verification Required
+              Age Verification (18+)
             </h2>
 
-            <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed m-0">
-              This section contains mature Manhwa, Manga, and graphic fiction
-              intended strictly for adult readers (18+). Please confirm that you
-              are at least 18 years of age to continue.
+            <p className="text-xs sm:text-sm text-[var(--text)] leading-relaxed m-0">
+              This section contains mature Manhwa and Manga intended strictly
+              for adult readers (18+). Confirm your age to continue.
             </p>
 
-            <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+            <div className="pt-2 flex items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={() => setVerified(true)}
-                className="neu-pill-active px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold cursor-pointer"
+                className="neu-pill-active px-4 py-1.5 rounded-full text-xs font-extrabold cursor-pointer"
               >
-                I Am 18 or Older — Enter
+                I Am 18+ — Enter
               </button>
 
               <button
                 type="button"
                 onClick={() => router.push("/?explore=1")}
-                className="neu-pill px-6 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--ivory)] cursor-pointer"
+                className="neu-pill px-4 py-1.5 rounded-full text-xs font-semibold text-[var(--ivory)] cursor-pointer"
               >
-                Under 18 — Leave
+                Leave
               </button>
             </div>
           </div>

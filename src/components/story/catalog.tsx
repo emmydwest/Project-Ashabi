@@ -5,8 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { SafeImage as Image } from "@/components/ui/safe-image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { StoryCard } from "./story-card";
-import { filterStories } from "@/lib/stories";
 import {
   ANILIST_GENRES,
   type AniListCategory,
@@ -119,8 +117,6 @@ export function Catalog({
     return "/discover" + (p.size ? "?" + p.toString() : "");
   }
 
-  const originalStories = filterStories(urlQuery, "All");
-
   return (
     <div className="space-y-6">
       {/* Search Bar with Search Button */}
@@ -176,7 +172,7 @@ export function Catalog({
               { id: "MANHWA", label: "Manhwa (KR Webtoons)" },
               { id: "MANGA", label: "Manga (JP)" },
               { id: "ANIME", label: "Anime (TV & Film)" },
-              { id: "ORIGINALS", label: "African Launch Originals" },
+              { id: "ORIGINALS", label: "African Launch Originals · Soon" },
             ] as const
           ).map((cat) => {
             const active = validCategory === cat.id;
@@ -250,10 +246,9 @@ export function Catalog({
       <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
         <span role="status">
           {validCategory === "ORIGINALS" ? (
-            <>
-              Showing <strong>{originalStories.length}</strong> African Launch
-              Originals
-            </>
+            <span className="text-[var(--gold-bright)] font-bold">
+              Ashabi Originals · In Active Development (Coming Soon)
+            </span>
           ) : loading ? (
             <span className="text-[var(--gold-bright)] font-bold">
               Fetching live {validGenre !== "All" ? `${validGenre} ` : ""}
@@ -281,11 +276,49 @@ export function Catalog({
 
       {/* Results Grid */}
       {validCategory === "ORIGINALS" ? (
-        <div className="story-grid">
-          {originalStories.map((story) => (
-            <StoryCard key={story.slug} story={story} />
-          ))}
-        </div>
+        <section className="liquid-glass-gold rounded-2xl p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-5">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-[var(--gold-bright)] bg-[rgba(245,189,67,0.12)] border border-[rgba(245,189,67,0.3)]">
+            In Active Development · Coming Soon
+          </span>
+
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[var(--text-strong)] m-0">
+            Ashabi African Launch Originals
+          </h2>
+
+          <p className="text-sm sm:text-base text-[var(--text)] leading-relaxed max-w-xl mx-auto m-0">
+            Our flagship slate of original African comics, webtoons, graphic
+            novels, and illustrated universes is currently in active production.
+            As Ashabi Originals launch, third-party preview titles will
+            gradually be phased out.
+          </p>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/welcome"
+              className="neu-pill-active inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold"
+            >
+              <span>Read Founder’s Vision</span>
+            </Link>
+
+            <Link
+              href="/discover?category=MANHWA"
+              className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
+            >
+              <span>Explore Preview Catalogue</span>
+            </Link>
+
+            <a
+              href="https://wa.me/2349048964270?text=Hello%2C%20I%20am%20interested%20in%20Ashabi%20African%20Launch%20Originals."
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Contact the Founder on WhatsApp"
+              title="Message the Founder on WhatsApp"
+              className="whatsapp-glass-btn w-9 h-9 rounded-full grid place-items-center"
+            >
+              <Icon name="whatsapp" size={16} />
+            </a>
+          </div>
+        </section>
       ) : items.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
           {items.map((item) => (

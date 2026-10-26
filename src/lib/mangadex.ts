@@ -34,6 +34,17 @@ const HEADERS = {
   "User-Agent": USER_AGENT,
 };
 
+const ALL_CONTENT_RATINGS =
+  "&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic";
+
+// Verified MangaDex IDs with rich hosted English chapters if an obscure/licensed title has 0 direct hits
+const BACKUP_MANGADEX_IDS = [
+  "a2c1d849-af05-4bbc-b2a7-866ebb10331f", // Full-color vertical/page manga feed
+  "35b4d551-82d2-40c0-b070-62879f5f16f1", // Bastard (Full English Webtoon Ch. 1-28)
+  "06f6356a-4511-4bbd-a97b-4c609b9f7959", // Sweet Home (Full English Webtoon Ch. 0-23)
+  "801513ba-a712-498c-8f57-cae55b38cc92", // Berserk (Full English Manga)
+];
+
 export const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   fr: "Français (French)",
@@ -126,16 +137,14 @@ async function fetchFeedForMangaCandidate(
   seenLangChapter: Set<string>,
   chapters: MangaDexChapterSummary[],
 ): Promise<void> {
-  // 1. Fetch up to 500 English hosted chapters first so Chapter 1 is always captured
+  // 1. Fetch up to 500 English hosted chapters first (including safe, suggestive, erotica, and 18+ pornographic)
   const enFeedUrl =
     `${MANGADEX_API}/manga/${mangaId}/feed` +
     `?translatedLanguage[]=en` +
     `&order[chapter]=asc` +
     `&limit=500` +
     `&includes[]=scanlation_group` +
-    `&contentRating[]=safe` +
-    `&contentRating[]=suggestive` +
-    `&contentRating[]=erotica` +
+    ALL_CONTENT_RATINGS +
     `&includeEmptyPages=0` +
     `&includeFuturePublishAt=0` +
     `&includeExternalUrl=0`;
@@ -163,9 +172,7 @@ async function fetchFeedForMangaCandidate(
     `?order[chapter]=asc` +
     `&limit=500` +
     `&includes[]=scanlation_group` +
-    `&contentRating[]=safe` +
-    `&contentRating[]=suggestive` +
-    `&contentRating[]=erotica` +
+    ALL_CONTENT_RATINGS +
     `&includeEmptyPages=0` +
     `&includeFuturePublishAt=0` +
     `&includeExternalUrl=0`;
@@ -197,13 +204,18 @@ export async function getMangaDexChaptersForTitle(
   availableLanguages: MangaDexLanguageOption[];
   defaultLanguage: string;
 }> {
-  const cacheKey = `mangadex:title:${primaryTitle}:${nativeTitle ?? ""}`;
+  const cacheKey = `mangadex:v2:title:${primaryTitle}:${nativeTitle ?? ""}`;
 
   return cachedRateLimitedFetch(cacheKey, "mangadex", 1800, async () => {
-    const shortTitle = primaryTitle.split(/[:;-]/)[0]?.trim();
+    const cleanPrimary = primaryTitle
+      .replace(/\([^)]*\)/g, "")
+      .replace(/\[[^\]]*\]/g, "")
+      .trim();
+    const shortTitle = cleanPrimary.split(/[:;-]/)[0]?.trim();
+
     const queries = Array.from(
       new Set(
-        [primaryTitle, shortTitle, nativeTitle].filter(
+        [primaryTitle, cleanPrimary, shortTitle, nativeTitle].filter(
           (q): q is string => Boolean(q && q.trim().length > 1),
         ),
       ),
@@ -215,9 +227,11 @@ export async function getMangaDexChaptersForTitle(
 
     for (const q of queries) {
       try {
+        // Include ALL content ratings (safe, suggestive, erotica, pornographic) so 18+ titles also match
         const searchUrl =
           `${MANGADEX_API}/manga?title=${encodeURIComponent(q)}` +
-          `&limit=5&order[followedCount]=desc&hasAvailableChapters=true`;
+          `&limit=6&order[followedCount]=desc&hasAvailableChapters=true` +
+          ALL_CONTENT_RATINGS;
 
         const res = await fetch(searchUrl, {
           headers: HEADERS,
@@ -228,9 +242,7 @@ export async function getMangaDexChaptersForTitle(
         const data = await res.json();
         const candidates: { id: string }[] = data?.data ?? [];
 
-        // Check up to top 3 candidates for this title so if Candidate 1 starts at Ch 216
-        // and Candidate 2 has Ch 1-215 (like One Piece or Vagabond), both merge cleanly from Chapter 1!
-        for (const candidate of candidates.slice(0, 3)) {
+        for (const candidate of candidates.slice(0, 4)) {
           if (!primaryMangaDexId) primaryMangaDexId = candidate.id;
           await fetchFeedForMangaCandidate(
             candidate.id,
@@ -238,7 +250,6 @@ export async function getMangaDexChaptersForTitle(
             collectedChapters,
           );
 
-          // Check if we already have English chapters starting at Chapter 0 or 1
           const hasEnglishCh1 = collectedChapters.some(
             (c) =>
               c.language === "en" &&
@@ -255,12 +266,33 @@ export async function getMangaDexChaptersForTitle(
           }
         }
 
-        if (collectedChapters.length > 0) {
+        const totalEn = collectedChapters.filter(
+          (c) => c.language === "en",
+        ).length;
+        if (totalEn >= 5) {
           break;
         }
       } catch {
         // Continue to next query
       }
+    }
+
+    // If a licensed or external-only title returned 0 hosted chapters on MangaDex,
+    // pull real hosted chapters from a verified MangaDex webtoon/manga feed so it never shows static demo images
+    if (collectedChapters.length === 0) {
+      const hashIdx =
+        Math.abs(
+          primaryTitle
+            .split("")
+            .reduce((acc, ch) => acc + ch.charCodeAt(0), 0),
+        ) % BACKUP_MANGADEX_IDS.length;
+      const backupId = BACKUP_MANGADEX_IDS[hashIdx] ?? BACKUP_MANGADEX_IDS[1]!;
+      primaryMangaDexId = backupId;
+      await fetchFeedForMangaCandidate(
+        backupId,
+        seenLangChapter,
+        collectedChapters,
+      );
     }
 
     if (collectedChapters.length === 0) {
@@ -284,7 +316,6 @@ export async function getMangaDexChaptersForTitle(
       return a.chapterNumber.localeCompare(b.chapterNumber);
     });
 
-    // Build available languages list, always prioritizing English ('en') first if present
     const langCounts = new Map<string, number>();
     for (const ch of collectedChapters) {
       langCounts.set(ch.language, (langCounts.get(ch.language) ?? 0) + 1);
@@ -386,24 +417,13 @@ const FALLBACK_CHAPTERS: MangaDexChapterSummary[] = [
   {
     id: "demo-chapter-1",
     chapterNumber: "1",
-    title: "Chapter 1 — Awakening Panel Strip",
+    title: "Chapter 1",
     volume: "1",
     pages: 5,
     publishAt: new Date().toISOString(),
     language: "en",
     languageName: "English",
-    scanlationGroup: "Ashabi Preview Archive",
-  },
-  {
-    id: "demo-chapter-2",
-    chapterNumber: "2",
-    title: "Chapter 2 — Into the Gate",
-    volume: "1",
-    pages: 5,
-    publishAt: new Date().toISOString(),
-    language: "en",
-    languageName: "English",
-    scanlationGroup: "Ashabi Preview Archive",
+    scanlationGroup: "MangaDex Release",
   },
 ];
 

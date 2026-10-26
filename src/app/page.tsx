@@ -285,7 +285,7 @@ export default async function Home() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-6">
-          {featuredBooks.slice(0, 6).map((book) => (
+          {featuredBooks.slice(0, 12).map((book) => (
             <Link
               key={book.id}
               href={`/books/${book.id}`}

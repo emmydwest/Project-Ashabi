@@ -1,135 +1,120 @@
-import { SafeImage as Image } from "@/components/ui/safe-image";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { creators, getStoriesByCreator } from "@/lib/stories";
-import { Badge } from "@/components/ui/primitives";
+import { ArrowRight, Feather, Layers, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { Icon } from "@/components/icons";
 
-export const metadata = { title: "Creators" };
+export const metadata: Metadata = {
+  title: "Creator Studio & Roster — Coming Soon | Project Ashabi",
+  description:
+    "Ashabi Creator Studio and original African creator onboarding are currently in active development.",
+};
+
+const WHATSAPP_URL =
+  "https://wa.me/2349048964270?text=Hello%2C%20I%20am%20a%20creator%20interested%20in%20publishing%20on%20Project%20Ashabi.";
 
 export default function CreatorsPage() {
   return (
-    <main id="main" className="page space-y-12">
-      <section className="max-w-3xl space-y-4">
-        <p className="eyebrow">For the world-builders</p>
-        <h1 className="text-4xl sm:text-5xl font-bold">
-          African creators, credited and front-and-center.
+    <main
+      id="main"
+      className="max-w-5xl mx-auto px-6 sm:px-10 py-14 pb-28 space-y-16"
+    >
+      {/* Coming Soon Hero Header */}
+      <section className="space-y-6 border-b border-white/10 pb-12">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-[var(--gold-bright)] bg-[rgba(245,189,67,0.12)] border border-[rgba(245,189,67,0.3)]">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Creator Portal · Coming Soon (In Development)</span>
+        </div>
+
+        <h1 className="font-serif text-4xl sm:text-6xl font-bold text-[var(--text-strong)] tracking-tight leading-[1.06] m-0">
+          Ashabi Creator Studio &amp; Roster
         </h1>
-        <p className="text-base sm:text-lg text-[var(--text)]">
-          Writers, illustrators, comic artists, and sequential storytellers:
-          Ashabi pairs curated editorial support with clear rights records so
-          creators retain ownership unless a separate agreement states
-          otherwise.
+
+        <p className="text-base sm:text-lg text-[var(--text)] leading-relaxed max-w-2xl m-0">
+          Our dedicated Creator Studio, verified African creator roster, and
+          direct episode publishing tools are currently under active
+          development. We are building a home where African writers,
+          illustrators, comic artists, and animators retain clear credit and IP
+          pathways.
         </p>
-      </section>
 
-      <section aria-labelledby="showcase-creators" className="space-y-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow">Featured Roster</p>
-            <h2 id="showcase-creators" className="text-2xl sm:text-3xl font-bold">
-              Meet the creators in the launch collection
-            </h2>
-          </div>
-          <Link href="/discover" className="text-link">
-            Browse all stories <Icon name="arrow" size={16} />
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          <Link
+            href="/welcome"
+            className="neu-pill-active inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold"
+          >
+            <Feather className="w-3.5 h-3.5" />
+            <span>Read Founder’s Note</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {creators.map((creator) => {
-            const works = getStoriesByCreator(creator.username);
-            return (
-              <Link
-                key={creator.username}
-                href={`/creators/${creator.username}`}
-                className="group rounded-[22px] border border-[var(--border)] bg-[var(--bg-2)] p-6 flex flex-col justify-between gap-5 transition-all hover:border-[var(--border-gold)] hover:-translate-y-1"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden border border-[var(--border-gold)] shrink-0">
-                      <Image
-                        src={`/images/${creator.avatarImage}.webp`}
-                        alt={creator.displayName}
-                        fill
-                        sizes="64px"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <Badge tone="gold">{creator.publicLabel}</Badge>
-                      <h3 className="text-xl font-bold mt-1 group-hover:text-[var(--gold-bright)] truncate">
-                        {creator.displayName}
-                      </h3>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {creator.roleLabel} · {creator.location}
-                      </p>
-                    </div>
-                  </div>
+          <Link
+            href="/?explore=1"
+            className="neu-pill inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
+          >
+            <span>Return to Hub</span>
+          </Link>
 
-                  <p className="text-sm text-[var(--text)] line-clamp-3">
-                    {creator.bio}
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between text-xs">
-                  <span className="text-[var(--ivory)] font-medium">
-                    {works.length} {works.length === 1 ? "story" : "stories"} in
-                    catalog
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[var(--gold-bright)] font-semibold">
-                    View profile <Icon name="arrow" size={14} />
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Contact the Founder on WhatsApp"
+            title="Creator Inquiry? Message the Founder on WhatsApp (+234 904 896 4270)"
+            className="whatsapp-glass-btn w-9 h-9 rounded-full grid place-items-center"
+          >
+            <Icon name="whatsapp" size={16} />
+          </a>
         </div>
       </section>
 
-      <section className="rounded-[24px] border border-[var(--border-gold)] bg-[rgba(12,19,25,0.85)] p-6 sm:p-10 grid md:grid-cols-2 gap-8 items-center">
-        <div className="space-y-3">
-          <p className="eyebrow">Staged Creator Onboarding</p>
-          <h2 className="text-2xl sm:text-3xl font-bold">
-            How publishing on Ashabi works
+      {/* What Is Coming for Creators */}
+      <section className="grid md:grid-cols-3 gap-6">
+        <div className="neu-card rounded-2xl p-6 space-y-3">
+          <div className="w-9 h-9 rounded-xl bg-[rgba(245,189,67,0.1)] border border-[rgba(245,189,67,0.25)] grid place-items-center text-[var(--gold-bright)]">
+            <Layers className="w-4 h-4" />
+          </div>
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--gold)] block">
+            Coming Soon
+          </span>
+          <h2 className="text-lg font-bold text-[var(--text-strong)] m-0">
+            Vertical &amp; Page Publishing
           </h2>
-          <p className="text-sm sm:text-base text-[var(--text)]">
-            During our initial 90-day beta, creator intake is curated by the
-            Ashabi editorial team so every published title has verified rights,
-            accurate creator credit, and mobile-optimized assets.
-          </p>
-          <p className="text-xs text-[var(--text-muted)]">
-            Creators retain copyright unless a separate written agreement states
-            otherwise. Publishing is completely free for approved creators.
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed m-0">
+            Direct episode uploads for vertical scroll webtoons, graphic novels,
+            and serialized prose with mobile-first optimization.
           </p>
         </div>
 
-        <div className="grid gap-3 text-sm">
-          <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-4">
-            <strong className="text-[var(--gold-bright)] block">
-              1. Editorial & Rights Review
-            </strong>
-            <span className="text-xs text-[var(--text-muted)]">
-              Every work passes intake, suitability, and written permission
-              verification before release.
-            </span>
+        <div className="neu-card rounded-2xl p-6 space-y-3">
+          <div className="w-9 h-9 rounded-xl bg-[rgba(245,189,67,0.1)] border border-[rgba(245,189,67,0.25)] grid place-items-center text-[var(--gold-bright)]">
+            <ShieldCheck className="w-4 h-4" />
           </div>
-          <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-4">
-            <strong className="text-[var(--gold-bright)] block">
-              2. Audience & Readership Insights
-            </strong>
-            <span className="text-xs text-[var(--text-muted)]">
-              Track episode starts, completion rates, and reader follows without
-              vanity noise.
-            </span>
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--gold)] block">
+            Coming Soon
+          </span>
+          <h2 className="text-lg font-bold text-[var(--text-strong)] m-0">
+            Creator Rights &amp; Attribution
+          </h2>
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed m-0">
+            Transparent rights records ensuring African storytellers keep clear
+            credit and ownership of their original worlds.
+          </p>
+        </div>
+
+        <div className="neu-card rounded-2xl p-6 space-y-3">
+          <div className="w-9 h-9 rounded-xl bg-[rgba(245,189,67,0.1)] border border-[rgba(245,189,67,0.25)] grid place-items-center text-[var(--gold-bright)]">
+            <Users className="w-4 h-4" />
           </div>
-          <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-4">
-            <strong className="text-[var(--gold-bright)] block">
-              3. Clear Attribution
-            </strong>
-            <span className="text-xs text-[var(--text-muted)]">
-              Public labels clearly distinguish creator-published stories from
-              Ashabi concepts and external discovery links.
-            </span>
-          </div>
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--gold)] block">
+            Early Onboarding
+          </span>
+          <h2 className="text-lg font-bold text-[var(--text-strong)] m-0">
+            Ashabi Studios Pathway
+          </h2>
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed m-0">
+            Promising original series will be incubated for future animation,
+            film, and global IP partnerships.
+          </p>
         </div>
       </section>
     </main>
