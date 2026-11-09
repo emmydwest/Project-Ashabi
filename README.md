@@ -1,26 +1,94 @@
-# Ashabi — first public experience
+# Ashabi
 
-This Next.js App Router project implements the first website milestone from the parent build pack. All catalog entries are explicitly marked as concept material. Original artwork and specifications remain untouched in the parent folder.
+**African comics and entertainment IP platform — comics, webtoons, books, and creator tools. Live beta.**
 
-## Run locally
+[![Live](https://img.shields.io/badge/Live-ashabi.cloud-C9A227?style=flat-square)](https://ashabi.cloud)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3FCF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
 
-Use Node.js 20.9 or newer.
+**Live site:** [https://ashabi.cloud](https://ashabi.cloud)
 
-- Install: npm install
-- Preview: npm run dev
-- Format: npm run format
-- Lint: npm run lint
-- Typecheck: npm run typecheck
-- Production export: npm run build
+> Screenshot (place at `docs/screenshot.png` when publishing):
+>
+> ![Ashabi — Founder's Note / product UI](docs/screenshot.png)
+>
+> *Local draft copy also saved as `ashabi-screenshot.png` in this polish folder. Note: ashabi.cloud was returning Vercel `DEPLOYMENT_DISABLED` (paused) when this README was drafted — unpause the project before relying on the live URL.*
 
-## Milestone scope
+---
 
-Public home, URL-based discovery and search, concept story detail pages, creator information, and about page. Supplied artwork is compressed to WebP. The design uses the supplied palette, responsive layouts, custom SVG controls, and reduced-motion support.
+## What it is
 
-## Next implementation stage
+Ashabi is an African-founded entertainment and IP venture: a reading hub for comics, webtoons, graphic novels, and serialized fiction, plus a path for African creators to publish and keep clear credit. Creators are offered a **60/40 revenue split** (creator / platform). The product is in **live beta**.
 
-Authentication and server-side roles must precede reader saves/history, creator applications, upload endpoints, studio access, and moderation. Choose and configure a mature identity provider, relational storage, and private object storage. This static first milestone does not simulate accounts or accept submissions.
+Third-party catalog tiles (e.g. AniList-powered manhwa/manga/anime browsing) are **demonstration content** for UX while original Ashabi titles ramp up — not Ashabi Originals.
 
-No chapters, real creator identities, age classifications, platform metrics, or legal agreements were provided. These must be supplied and cleared before the respective live features are enabled. Source and prototype permission metadata are retained on every concept title in src/lib/stories.ts.
+---
 
-Do not use browser storage as a replacement for authenticated reader data. Do not publish protected studio or admin pages without server-side authorization.
+## Features
+
+- **Comics Hub** — home spotlight, chapter/episode drops, top-ranked series, weekly release schedule
+- **Discover** — browse and search across the catalog
+- **Books & Novels** — free full-text books shelf (Gutendex / Project Gutenberg)
+- **Vertical comic reader** — scroll-first reading experience for illustrated series
+- **Creators Studio** — creator portal & roster (**in development / coming soon**): publishing tools, rights & attribution, Ashabi Studios pathway
+- **Founder's Note** — mission, roadmap stages, and founder story (`/welcome`)
+- **Auth** — sign-in / sign-up / password reset (Supabase)
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js (App Router) |
+| UI | React 19, Tailwind CSS 4, Lucide |
+| Language | TypeScript |
+| Validation | Zod |
+| Backend / auth | Supabase (`@supabase/ssr`, `@supabase/supabase-js`) |
+
+---
+
+## Getting started
+
+Requires **Node.js 20.9+**.
+
+```bash
+npm install
+npm run dev
+```
+
+Other scripts from `package.json`:
+
+```bash
+npm run build      # production build
+npm run start      # start production server
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint .
+npm run test       # node --test tests/*.test.mjs
+npm run format     # prettier --write .
+```
+
+Copy `.env.example` → `.env.local` and fill in Supabase (and related) keys before auth-backed flows work.
+
+---
+
+## Roadmap (product stages)
+
+1. **Foundation** — digital story platform (comics, webtoons, graphic novels, serialized fiction)
+2. **Ecosystem** — creator community across Africa
+3. **Original IP** — Ashabi Originals (mythology, sci-fi, fantasy, romance, epics)
+4. **Screen & beyond** — Ashabi Studios (animation, film, series, games)
+
+---
+
+## Author
+
+**Emmanuel Kalama (Emmy D West)** — founder · Lagos, Nigeria
+
+- Portfolio: [emmyd-portfolio.vercel.app](https://emmyd-portfolio.vercel.app)
+- GitHub: [@emmydwest](https://github.com/emmydwest)
+- X: [@EmmyDWest](https://x.com/EmmyDWest)
+- Brand: [@studioashabi](https://x.com/studioashabi)
