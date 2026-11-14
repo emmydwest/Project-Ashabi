@@ -14,6 +14,9 @@ export function SafeImage({
   src,
   fallbackSrc = DEFAULT_FALLBACK,
   alt,
+  priority,
+  loading,
+  decoding,
   ...rest
 }: SafeImageProps) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
@@ -28,6 +31,9 @@ export function SafeImage({
       alt={alt || "Project Ashabi artwork"}
       unoptimized
       referrerPolicy="no-referrer"
+      priority={priority}
+      loading={priority ? "eager" : (loading ?? "lazy")}
+      decoding={decoding ?? "async"}
       onError={() => {
         if (cleanSrc !== fallbackSrc) {
           setFailedSrc(cleanSrc);

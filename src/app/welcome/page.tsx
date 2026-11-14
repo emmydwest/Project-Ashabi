@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Suspense } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -11,6 +11,11 @@ import {
 } from "lucide-react";
 import { SafeImage as Image } from "@/components/ui/safe-image";
 import { Icon } from "@/components/icons";
+import {
+  ExploreLink,
+  HumanCheckCard,
+  HumanGateProvider,
+} from "@/components/welcome/human-gate";
 
 export const metadata: Metadata = {
   title: "Welcome to Project Ashabi — African Stories. Limitless Worlds.",
@@ -18,12 +23,19 @@ export const metadata: Metadata = {
     "Project Ashabi is an African-founded entertainment and intellectual-property venture discovering and developing extraordinary stories.",
 };
 
+export const dynamic = "force-static";
+export const revalidate = false;
+
 const WHATSAPP_URL =
   "https://wa.me/2349048964270?text=Hello%2C%20I%20just%20visited%20Project%20Ashabi%20and%20would%20love%20to%20connect.";
 
 export default function WelcomePage() {
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
   return (
     <main id="main" className="relative min-h-screen pb-28 overflow-hidden">
+      <Suspense fallback={null}>
+      <HumanGateProvider siteKey={siteKey}>
       {/* Atmospheric Editorial Banner Backdrop (Unboxed, Fades Seamlessly into Canvas) */}
       <div
         aria-hidden="true"
@@ -67,13 +79,13 @@ export default function WelcomePage() {
               <Icon name="whatsapp" size={16} />
             </a>
 
-            <Link
+            <ExploreLink
               href="/?explore=1"
               className="neu-pill-active inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-extrabold"
             >
               <span>Enter Platform</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            </ExploreLink>
           </div>
         </div>
 
@@ -103,6 +115,8 @@ export default function WelcomePage() {
             </span>
           </div>
         </header>
+
+        <HumanCheckCard />
 
         {/* Visual Triptych Gallery: The Worlds We Are Building */}
         <section
@@ -448,30 +462,30 @@ export default function WelcomePage() {
             {/* Compact Action Bar + Circular WhatsApp Icon */}
             <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-2.5">
-                <Link
+                <ExploreLink
                   href="/?explore=1"
                   className="neu-pill-active inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-extrabold"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Continue to Explore Ashabi</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                </ExploreLink>
 
-                <Link
+                <ExploreLink
                   href="/books"
                   className="neu-pill inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
                   <span>Books &amp; Novels</span>
-                </Link>
+                </ExploreLink>
 
-                <Link
+                <ExploreLink
                   href="/discover"
                   className="neu-pill inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-[var(--ivory)]"
                 >
                   <Compass className="w-3.5 h-3.5 text-[var(--gold-bright)]" />
                   <span>Discover Catalogue</span>
-                </Link>
+                </ExploreLink>
               </div>
 
               <div className="flex items-center gap-2.5">
@@ -493,6 +507,8 @@ export default function WelcomePage() {
           </div>
         </section>
       </article>
+      </HumanGateProvider>
+      </Suspense>
     </main>
   );
 }

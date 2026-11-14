@@ -14,7 +14,7 @@ import {
   Play,
   X,
 } from "lucide-react";
-import type { AniListMedia, AniListTrailer } from "@/lib/anilist";
+import { anilistCoverSize, type AniListCard, type AniListTrailer } from "@/lib/anilist";
 import type { Story } from "@/lib/stories";
 import {
   loadReaderState,
@@ -25,7 +25,7 @@ import {
 import { trackEvent } from "@/lib/analytics";
 
 interface Props {
-  spotlightItems: AniListMedia[];
+  spotlightItems: AniListCard[];
   stories: Story[];
 }
 
@@ -124,6 +124,10 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
         <div className="absolute inset-0">
           {spotlightItems.map((item, idx) => {
             const isCurrent = idx === activeIndex;
+            const isNeighbor =
+              idx === (activeIndex + 1) % spotlightItems.length ||
+              idx === (activeIndex - 1 + spotlightItems.length) % spotlightItems.length;
+            if (!isCurrent && !isNeighbor) return null;
             return (
               <div
                 key={item.id}
@@ -139,7 +143,7 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                   src={item.bannerImage || item.coverImage}
                   alt=""
                   fill
-                  priority={idx === 0}
+                  priority={isCurrent}
                   sizes="100vw"
                   className="object-cover object-center"
                 />
@@ -291,19 +295,27 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                     : "opacity-100 scale-100")
                 }
               >
-                {spotlightItems.map((item, idx) => (
-                  <Image
-                    key={item.id}
-                    src={item.coverImage}
-                    alt={item.title}
-                    fill
-                    sizes="256px"
-                    className={
-                      "object-cover transition-all duration-700 ease-out group-hover:scale-105 " +
-                      (idx === activeIndex ? "opacity-100" : "opacity-0")
-                    }
-                  />
-                ))}
+                {spotlightItems.map((item, idx) => {
+                  const isCurrent = idx === activeIndex;
+                  const isNeighbor =
+                    idx === (activeIndex + 1) % spotlightItems.length ||
+                    idx === (activeIndex - 1 + spotlightItems.length) % spotlightItems.length;
+                  if (!isCurrent && !isNeighbor) return null;
+                  return (
+                    <Image
+                      key={item.id}
+                      src={anilistCoverSize(item.coverImage, "large")}
+                      alt={item.title}
+                      fill
+                      priority={isCurrent}
+                      sizes="256px"
+                      className={
+                        "object-cover transition-all duration-700 ease-out group-hover:scale-105 " +
+                        (isCurrent ? "opacity-100" : "opacity-0")
+                      }
+                    />
+                  );
+                })}
               </Link>
 
               <button
@@ -340,7 +352,7 @@ export function HomeComicStage({ spotlightItems, stories }: Props) {
                     }
                   >
                     <Image
-                      src={item.coverImage}
+                      src={anilistCoverSize(item.coverImage, "medium")}
                       alt={item.title}
                       fill
                       sizes="52px"

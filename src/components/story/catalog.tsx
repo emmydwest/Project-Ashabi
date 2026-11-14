@@ -7,8 +7,9 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import {
   ANILIST_GENRES,
+  toAniListCard,
+  type AniListCard,
   type AniListCategory,
-  type AniListMedia,
   type AniListTrailer,
 } from "@/lib/anilist";
 import { searchAniListFromBrowser } from "@/lib/anilist-browser";
@@ -19,7 +20,7 @@ type DiscoverCategory = "ALL" | AniListCategory | "ORIGINALS";
 export function Catalog({
   initialItems = [],
 }: {
-  initialItems?: AniListMedia[];
+  initialItems?: AniListCard[];
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -35,7 +36,7 @@ export function Catalog({
     | "SCORE";
 
   const [searchInput, setSearchInput] = useState(urlQuery);
-  const [items, setItems] = useState<AniListMedia[]>(initialItems);
+  const [items, setItems] = useState<AniListCard[]>(initialItems);
   const [loading, setLoading] = useState<boolean>(initialItems.length === 0);
   const [activeTrailer, setActiveTrailer] = useState<{
     title: string;
@@ -79,7 +80,7 @@ export function Catalog({
           controller.signal,
         );
         if (!cancelled) {
-          setItems(results);
+          setItems(results.map((item) => toAniListCard(item)));
         }
       } catch {
         // Keep current items on abort/network error
@@ -320,7 +321,7 @@ export function Catalog({
         </section>
       ) : items.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
               key={item.id}
               className="group rounded-[20px] overflow-hidden border border-[var(--border)] bg-[#070c12] flex flex-col justify-between transition-all hover:-translate-y-1.5 hover:border-[var(--border-gold)]"
@@ -331,6 +332,7 @@ export function Catalog({
                     src={item.coverImage}
                     alt={item.title}
                     fill
+                    priority={index < 4}
                     sizes="(max-width:640px) 48vw, 20vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />

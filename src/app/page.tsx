@@ -13,9 +13,16 @@ import { Icon } from "@/components/icons";
 import { HomeComicStage } from "@/components/story/home-comic-stage";
 import { AniListHub } from "@/components/story/anilist-hub";
 import { ResetWelcomeOnReload } from "@/components/welcome/reset-welcome-on-reload";
-import { getAniListHomeFeed } from "@/lib/anilist";
+import {
+  anilistCoverSize,
+  getAniListHomeFeed,
+  toAniListCard,
+} from "@/lib/anilist";
 import { getFeaturedBooks } from "@/lib/books";
 import { getPublicStories } from "@/lib/stories";
+
+export const dynamic = "force-static";
+export const revalidate = false;
 
 const WHATSAPP_URL =
   "https://wa.me/2349048964270?text=Hello%2C%20I%20just%20visited%20Project%20Ashabi%20and%20would%20love%20to%20connect.";
@@ -26,6 +33,15 @@ export default async function Home() {
     getAniListHomeFeed(),
     getFeaturedBooks("fantasy"),
   ]);
+
+  const spotlight = aniListFeed.spotlight.map((item) =>
+    toAniListCard(item, "large"),
+  );
+  const hubFeed = {
+    manhwa: aniListFeed.manhwa.map((item) => toAniListCard(item)),
+    manga: aniListFeed.manga.map((item) => toAniListCard(item)),
+    anime: aniListFeed.anime.map((item) => toAniListCard(item)),
+  };
 
   const neonLagos =
     publicStories.find((s) => s.slug === "neon-lagos") ?? publicStories[1];
@@ -38,12 +54,12 @@ export default async function Home() {
       <ResetWelcomeOnReload />
       {/* 1. Liquid Glass Hero Spotlight */}
       <HomeComicStage
-        spotlightItems={aniListFeed.spotlight}
+        spotlightItems={spotlight}
         stories={publicStories}
       />
 
       {/* 2. Interactive Manhwa, Manga & Anime Catalog (Search + Genre Filter + Posters) */}
-      <AniListHub feed={aniListFeed} />
+      <AniListHub feed={hubFeed} />
 
       {/* 3. Clean Two-Column Hub: Weekly Drops (Left 8 cols) + Top 5 Ranked Chart (Right 4 cols) */}
       <div className="grid lg:grid-cols-12 gap-10 items-start">
@@ -83,7 +99,7 @@ export default async function Home() {
               >
                 <div className="relative w-20 h-28 rounded-[14px] overflow-hidden shrink-0 border border-white/10">
                   <Image
-                    src={item.coverImage}
+                    src={anilistCoverSize(item.coverImage, "medium")}
                     alt={item.title}
                     fill
                     sizes="80px"
@@ -176,7 +192,7 @@ export default async function Home() {
 
                   <div className="relative w-12 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10">
                     <Image
-                      src={item.coverImage}
+                      src={anilistCoverSize(item.coverImage, "medium")}
                       alt={item.title}
                       fill
                       sizes="48px"
@@ -233,7 +249,7 @@ export default async function Home() {
             >
               <div className="neu-card relative aspect-[2/3] w-full rounded-[20px] overflow-hidden">
                 <Image
-                  src={slot.media.coverImage}
+                  src={anilistCoverSize(slot.media.coverImage, "medium")}
                   alt={slot.media.title}
                   fill
                   sizes="(max-width:640px) 45vw, 14vw"

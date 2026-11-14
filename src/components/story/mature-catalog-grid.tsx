@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BookOpen, Star } from "lucide-react";
 import { SafeImage as Image } from "@/components/ui/safe-image";
 import { searchAniListMatureFromBrowser } from "@/lib/anilist-browser";
-import type { AniListMedia } from "@/lib/anilist";
+import { toAniListCard, type AniListCard } from "@/lib/anilist";
 
 export function MatureCatalogGrid({
   initialItems,
@@ -13,15 +13,15 @@ export function MatureCatalogGrid({
   mode,
   query,
 }: {
-  initialItems: AniListMedia[];
+  initialItems: AniListCard[];
   category: "ALL" | "MANHWA" | "MANGA";
   mode: "ADULT_18" | "DARK_SEINEN";
   query: string;
 }) {
-  const [items, setItems] = useState(initialItems);
+  const [liveItems, setLiveItems] = useState<AniListCard[] | null>(null);
+  const items = liveItems ?? initialItems;
 
   useEffect(() => {
-    setItems(initialItems);
     const controller = new AbortController();
     let cancelled = false;
 
@@ -30,7 +30,9 @@ export function MatureCatalogGrid({
       controller.signal,
     )
       .then((results) => {
-        if (!cancelled && results.length > 0) setItems(results);
+        if (!cancelled && results.length > 0) {
+          setLiveItems(results.map((item) => toAniListCard(item)));
+        }
       })
       .catch(() => {
         // Keep the server-rendered snapshot if the browser cannot reach AniList.
@@ -40,11 +42,11 @@ export function MatureCatalogGrid({
       cancelled = true;
       controller.abort();
     };
-  }, [initialItems, category, mode, query]);
+  }, [category, mode, query]);
 
   return (
     <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <Link
           key={item.id}
           href={`/anilist/${item.id}`}
@@ -55,6 +57,7 @@ export function MatureCatalogGrid({
               src={item.coverImage}
               alt={item.title}
               fill
+              priority={index < 4}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 220px"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />

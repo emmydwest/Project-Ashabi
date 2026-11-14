@@ -98,8 +98,78 @@ export const ANILIST_ENDPOINT = "https://graphql.anilist.co";
 
 export function isCloudflareWorkerRuntime(): boolean {
   if (typeof window !== "undefined") return false;
+  if (process.env.OPEN_NEXT || process.env.CLOUDFLARE) return true;
   const ua = typeof navigator !== "undefined" ? navigator.userAgent ?? "" : "";
   return /Cloudflare-Workers/i.test(ua);
+}
+
+/** Prefer the build-time snapshot on the server so Workers never wait on AniList. */
+function shouldUseSnapshot(): boolean {
+  return typeof window === "undefined";
+}
+
+const PLACEHOLDER_COVER = "/images/story-neon-lagos.webp";
+
+/**
+ * Rewrite an AniList CDN cover URL to a smaller or larger named size.
+ * Grid cards should use "medium"; hero/detail covers can stay on "large".
+ */
+export function anilistCoverSize(
+  url: string | null | undefined,
+  size: "medium" | "large" | "extraLarge",
+): string {
+  if (!url || url.trim().length === 0) return PLACEHOLDER_COVER;
+  if (!url.includes("s4.anilist.co") || !url.includes("/cover/")) return url;
+  return url.replace(/\/cover\/(extraLarge|large|medium)\//, `/cover/${size}/`);
+}
+
+export type AniListCard = Pick<
+  AniListMedia,
+  | "id"
+  | "category"
+  | "title"
+  | "nativeTitle"
+  | "coverImage"
+  | "bannerImage"
+  | "genres"
+  | "averageScore"
+  | "chapters"
+  | "episodes"
+  | "authorName"
+  | "trailer"
+  | "status"
+  | "format"
+  | "popularity"
+  | "seasonYear"
+  | "description"
+>;
+
+export function toAniListCard(
+  item: AniListMedia,
+  cover: "medium" | "large" = "medium",
+): AniListCard {
+  return {
+    id: item.id,
+    category: item.category,
+    title: item.title,
+    nativeTitle: item.nativeTitle ?? null,
+    coverImage: anilistCoverSize(item.coverImage, cover),
+    bannerImage: item.bannerImage ?? null,
+    genres: item.genres,
+    averageScore: item.averageScore ?? null,
+    chapters: item.chapters ?? null,
+    episodes: item.episodes ?? null,
+    authorName: item.authorName,
+    trailer: item.trailer ?? null,
+    status: item.status,
+    format: item.format ?? null,
+    popularity: item.popularity ?? null,
+    seasonYear: item.seasonYear ?? null,
+    description:
+      item.description.length > 220
+        ? item.description.slice(0, 217).trimEnd() + "…"
+        : item.description,
+  };
 }
 
 export function isPlaceholderCover(url?: string | null): boolean {
@@ -119,7 +189,7 @@ export async function requestAniList<T = unknown>(
       Accept: "application/json",
     },
     body: JSON.stringify({ query, variables }),
-    signal,
+    signal: signal ?? AbortSignal.timeout(8000),
     cache: "no-store",
   });
 
@@ -256,6 +326,7 @@ export interface RawAniListNode {
   coverImage?: {
     extraLarge?: string | null;
     large?: string | null;
+    medium?: string | null;
     color?: string | null;
   } | null;
   title?: {
@@ -427,6 +498,7 @@ const MEDIA_FIELDS = `
   coverImage {
     extraLarge
     large
+    medium
     color
   }
   title {
@@ -511,6 +583,7 @@ const MEDIA_DETAIL_QUERY = `
             coverImage {
               extraLarge
               large
+              medium
             }
           }
         }
@@ -645,52 +718,55 @@ export function buildHomeFeed(
 }
 
 export async function getAniListHomeFeed(): Promise<AniListHomeFeed> {
-  if (!isCloudflareWorkerRuntime()) {
+  // On the server (build + Workers) always serve the prefetch snapshot so
+  // catalogue pages stay static and never block on graphql.anilist.co.
+  if (shouldUseSnapshot()) {
     try {
-      const data = await requestAniList<{
-        manhwa?: { media?: RawAniListNode[] };
-        manga?: { media?: RawAniListNode[] };
-        anime?: { media?: RawAniListNode[] };
-        leaderboard?: { media?: RawAniListNode[] };
-      }>(HOME_FEED_QUERY);
-
-      const rawManhwa: RawAniListNode[] = data.manhwa?.media ?? [];
-      const rawManga: RawAniListNode[] = data.manga?.media ?? [];
-      const rawAnime: RawAniListNode[] = data.anime?.media ?? [];
-      const rawLeaderboard: RawAniListNode[] = data.leaderboard?.media ?? [];
-
-      const manhwa = rawManhwa.map((node) => normalizeAniListNode(node, "MANHWA"));
-      const manga = rawManga.map((node) => normalizeAniListNode(node, "MANGA"));
-      const anime = rawAnime.map((node) => normalizeAniListNode(node, "ANIME"));
-      const leaderboard = rawLeaderboard.map((node) => normalizeAniListNode(node));
-
-      if (manhwa.length > 0 || manga.length > 0 || anime.length > 0) {
-        const topCreators = extractCreators([
-          ...rawManhwa.slice(0, 4),
-          ...rawManga.slice(0, 4),
-          ...rawAnime.slice(0, 2),
-        ]);
-
-        return buildHomeFeed(
-          manhwa,
-          manga,
-          anime,
-          leaderboard,
-          topCreators,
-          "live",
-        );
-      }
+      const snapshot = await loadAniListSnapshot();
+      const feed = snapshot.getSnapshotHomeFeed();
+      if (feed) return feed;
     } catch {
-      // AniList is unreachable from this runtime (or returned an empty page).
+      // Snapshot missing in this build — use the hard-coded catalogue below.
     }
+    return FALLBACK_HOME_FEED;
   }
 
   try {
-    const snapshot = await loadAniListSnapshot();
-    const feed = snapshot.getSnapshotHomeFeed();
-    if (feed) return feed;
+    const data = await requestAniList<{
+      manhwa?: { media?: RawAniListNode[] };
+      manga?: { media?: RawAniListNode[] };
+      anime?: { media?: RawAniListNode[] };
+      leaderboard?: { media?: RawAniListNode[] };
+    }>(HOME_FEED_QUERY);
+
+    const rawManhwa: RawAniListNode[] = data.manhwa?.media ?? [];
+    const rawManga: RawAniListNode[] = data.manga?.media ?? [];
+    const rawAnime: RawAniListNode[] = data.anime?.media ?? [];
+    const rawLeaderboard: RawAniListNode[] = data.leaderboard?.media ?? [];
+
+    const manhwa = rawManhwa.map((node) => normalizeAniListNode(node, "MANHWA"));
+    const manga = rawManga.map((node) => normalizeAniListNode(node, "MANGA"));
+    const anime = rawAnime.map((node) => normalizeAniListNode(node, "ANIME"));
+    const leaderboard = rawLeaderboard.map((node) => normalizeAniListNode(node));
+
+    if (manhwa.length > 0 || manga.length > 0 || anime.length > 0) {
+      const topCreators = extractCreators([
+        ...rawManhwa.slice(0, 4),
+        ...rawManga.slice(0, 4),
+        ...rawAnime.slice(0, 2),
+      ]);
+
+      return buildHomeFeed(
+        manhwa,
+        manga,
+        anime,
+        leaderboard,
+        topCreators,
+        "live",
+      );
+    }
   } catch {
-    // Snapshot missing in this build — use the hard-coded catalogue below.
+    // AniList is unreachable from this runtime (or returned an empty page).
   }
 
   return FALLBACK_HOME_FEED;
@@ -731,7 +807,7 @@ export async function searchAniListCatalog(params: {
     sort = ["SEARCH_MATCH", "POPULARITY_DESC"];
   }
 
-  if (!isCloudflareWorkerRuntime()) {
+  if (!shouldUseSnapshot()) {
     try {
       const data = await requestAniList<{ Page?: { media?: RawAniListNode[] } }>(
         CATALOG_SEARCH_QUERY,
@@ -753,7 +829,7 @@ export async function searchAniListCatalog(params: {
     }
   }
 
-  if (typeof window === "undefined") {
+  if (shouldUseSnapshot()) {
     try {
       const snapshot = await loadAniListSnapshot();
       const results = snapshot.searchSnapshotCatalog({
@@ -800,21 +876,29 @@ export async function fetchAniListMediaById(
 export async function getAniListMediaById(
   id: number,
 ): Promise<AniListMedia | null> {
-  if (!isCloudflareWorkerRuntime()) {
+  if (shouldUseSnapshot()) {
     try {
-      const live = await fetchAniListMediaById(id);
-      if (live) return live;
+      const snapshot = await loadAniListSnapshot();
+      const fromSnapshot = snapshot.getSnapshotMediaById(id);
+      if (fromSnapshot) return fromSnapshot;
     } catch {
-      // Fall through to snapshot / hard-coded lookup.
+      // ignore
     }
+
+    const allFallback = [
+      ...FALLBACK_MATURE_CATALOG,
+      ...FALLBACK_HOME_FEED.manhwa,
+      ...FALLBACK_HOME_FEED.manga,
+      ...FALLBACK_HOME_FEED.anime,
+    ];
+    return allFallback.find((item) => item.id === id) ?? null;
   }
 
   try {
-    const snapshot = await loadAniListSnapshot();
-    const fromSnapshot = snapshot.getSnapshotMediaById(id);
-    if (fromSnapshot) return fromSnapshot;
+    const live = await fetchAniListMediaById(id);
+    if (live) return live;
   } catch {
-    // ignore
+    // Fall through to hard-coded lookup.
   }
 
   const allFallback = [
@@ -823,34 +907,7 @@ export async function getAniListMediaById(
     ...FALLBACK_HOME_FEED.manga,
     ...FALLBACK_HOME_FEED.anime,
   ];
-
-  const found = allFallback.find((item) => item.id === id);
-  if (found) return found;
-
-  // Synthesize a valid series record if upstream ever times out on an arbitrary ID
-  return {
-
-    id,
-    category: "MANHWA",
-    title: `Featured Graphic Series #${id}`,
-    nativeTitle: "특선 그래픽 시리즈",
-    description:
-      "Uncut serialized graphic fiction and webtoon chapters with full multi-language support and official English-subtitled trailer.",
-    coverImage: "/images/story-neon-lagos.webp",
-    bannerImage: "/images/hero-ashabi-dawn.webp",
-    accentColor: "#f5bd43",
-    genres: ["Action", "Drama", "Fantasy", "Mature"],
-    averageScore: 87,
-    popularity: 128000,
-    status: "RELEASING",
-    chapters: 35,
-    countryOfOrigin: "KR",
-    format: "MANHWA",
-    seasonYear: 2023,
-    siteUrl: `https://anilist.co/manga/${id}`,
-    authorName: "Ashabi Global Partner Studio",
-    trailer: makeYouTubeEnglishSubTrailer("bssSj4cKsrI"),
-  };
+  return allFallback.find((item) => item.id === id) ?? null;
 }
 
 const FALLBACK_MANHWA: AniListMedia[] = [
@@ -1222,6 +1279,7 @@ const MATURE_CATALOG_QUERY = `
         coverImage {
           extraLarge
           large
+          medium
           color
         }
         trailer {
@@ -1272,21 +1330,21 @@ export async function getAniListMatureCatalog(params: {
 }): Promise<AniListMedia[]> {
   const cleanQuery = params.query?.trim() || undefined;
 
-  if (!isCloudflareWorkerRuntime()) {
+  if (shouldUseSnapshot()) {
+    try {
+      const snapshot = await loadAniListSnapshot();
+      const results = snapshot.getSnapshotMatureCatalog(params);
+      if (results.length > 0) return results;
+    } catch {
+      // ignore
+    }
+  } else {
     try {
       const results = await searchAniListMatureCatalog(params);
       if (results.length > 0) return results;
     } catch {
-      // Fall through to the build-time snapshot.
+      // Fall through to the local catalogue.
     }
-  }
-
-  try {
-    const snapshot = await loadAniListSnapshot();
-    const results = snapshot.getSnapshotMatureCatalog(params);
-    if (results.length > 0) return results;
-  } catch {
-    // ignore
   }
 
   return FALLBACK_MATURE_CATALOG.filter((item) => {

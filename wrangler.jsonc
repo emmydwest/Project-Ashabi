@@ -10,7 +10,8 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "NEXT_PUBLIC_SITE_URL": "https://ashabi.cloud"
+    "NEXT_PUBLIC_SITE_URL": "https://ashabi.cloud",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAGAvMGCWJm0QJgYN"
   },
   "routes": [
     { "pattern": "ashabi.cloud/*", "zone_id": "0eed97c107c4c3c5bb2e0622db13e517" },

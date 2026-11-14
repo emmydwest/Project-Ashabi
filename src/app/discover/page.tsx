@@ -1,11 +1,15 @@
 import { Suspense } from "react";
 import { Catalog } from "@/components/story/catalog";
-import { searchAniListCatalog } from "@/lib/anilist";
+import { searchAniListCatalog, toAniListCard } from "@/lib/anilist";
 
 export const metadata = { title: "Discover Manhwa, Manga & Comics" };
+export const dynamic = "force-static";
+export const revalidate = false;
 
 export default async function Discover() {
-  const initialItems = await searchAniListCatalog({ perPage: 20 });
+  const initialItems = (await searchAniListCatalog({ perPage: 20 })).map((item) =>
+    toAniListCard(item),
+  );
 
   return (
     <main id="main" className="page space-y-6">

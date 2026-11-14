@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronRight, Globe2, Layers } from "lucide-react";
+import { BookOpen, ChevronRight, Globe2, Layers, Loader2 } from "lucide-react";
 import type {
   MangaDexChapterSummary,
   MangaDexLanguageOption,
@@ -10,20 +10,63 @@ import type {
 
 interface Props {
   seriesId: number;
+  seriesTitle?: string;
+  nativeTitle?: string | null;
+  expectedChapters?: number | null;
   seriesStatus?: string;
-  chapters: MangaDexChapterSummary[];
-  availableLanguages: MangaDexLanguageOption[];
-  defaultLanguage: string;
+  chapters?: MangaDexChapterSummary[];
+  availableLanguages?: MangaDexLanguageOption[];
+  defaultLanguage?: string;
 }
 
 export function SeriesChaptersBrowser({
   seriesId,
+  seriesTitle,
+  nativeTitle,
   seriesStatus = "RELEASING",
-  chapters,
-  availableLanguages,
-  defaultLanguage,
+  chapters: initialChapters = [],
+  availableLanguages: initialLanguages = [],
+  defaultLanguage = "en",
 }: Props) {
+  const [chapters, setChapters] = useState<MangaDexChapterSummary[]>(initialChapters);
+  const [availableLanguages, setAvailableLanguages] =
+    useState<MangaDexLanguageOption[]>(initialLanguages);
   const [selectedLang, setSelectedLang] = useState<string>(defaultLanguage);
+  const [loading, setLoading] = useState(initialChapters.length === 0);
+
+  useEffect(() => {
+    if (initialChapters.length > 0) return;
+    const params = new URLSearchParams();
+    if (seriesTitle) params.set("title", seriesTitle);
+    if (nativeTitle) params.set("native", nativeTitle);
+    const controller = new AbortController();
+
+    async function load() {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/series/${seriesId}/chapters?${params.toString()}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          chapters?: MangaDexChapterSummary[];
+          availableLanguages?: MangaDexLanguageOption[];
+          defaultLanguage?: string;
+        };
+        setChapters(data.chapters ?? []);
+        setAvailableLanguages(data.availableLanguages ?? []);
+        if (data.defaultLanguage) setSelectedLang(data.defaultLanguage);
+      } catch {
+        // Leave the empty state if the chapter feed cannot be reached.
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => controller.abort();
+  }, [initialChapters.length, nativeTitle, seriesId, seriesTitle]);
 
   const filteredChapters =
     selectedLang === "all"
@@ -133,6 +176,16 @@ export function SeriesChaptersBrowser({
       ) : null}
 
       {/* Chapters Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-10 text-sm font-semibold text-[var(--gold-bright)]">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading chapters…
+        </div>
+      ) : displayChapters.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[var(--text-muted)] m-0">
+          Chapters for this title are still being linked. Please try again shortly.
+        </p>
+      ) : (
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[540px] overflow-y-auto pr-1">
         {displayChapters.map((chapter) => (
           <Link
@@ -168,6 +221,7 @@ export function SeriesChaptersBrowser({
           </Link>
         ))}
       </div>
+      )}
     </section>
   );
 }

@@ -1,53 +1,61 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  HUMAN_COOKIE_NAME,
+  isSafeRelativePath,
+  isSearchEngineBot,
+  verifyHumanCookie,
+} from "@/lib/human-check";
+
+const PUBLIC_PREFIXES = [
+  "/welcome",
+  "/api/human",
+  "/robots.txt",
+  "/favicon.ico",
+  "/images",
+];
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+    return true;
+  }
+  return /\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|txt|xml|map)$/i.test(pathname);
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // ALWAYS show the standalone "/welcome" Founder's Message whenever a visitor loads or reloads "/"
-  // without explicitly clicking through "?explore=1" from the Founder's page.
-  if (pathname === "/") {
-    const exploringNow = searchParams.get("explore") === "1";
+  // The founder's welcome letter always owns a plain visit to "/".
+  if (pathname === "/" && searchParams.get("explore") !== "1") {
+    const welcomeUrl = request.nextUrl.clone();
+    welcomeUrl.pathname = "/welcome";
+    welcomeUrl.search = "";
+    return NextResponse.redirect(welcomeUrl);
+  }
 
-    if (!exploringNow) {
+  const isBot = isSearchEngineBot(request.headers.get("user-agent"));
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+
+  if (!isBot && secret && !isPublicPath(pathname)) {
+    const cookie = request.cookies.get(HUMAN_COOKIE_NAME)?.value;
+    const verified = cookie ? await verifyHumanCookie(cookie, secret) : false;
+    if (!verified) {
       const welcomeUrl = request.nextUrl.clone();
       welcomeUrl.pathname = "/welcome";
-      const redirectRes = NextResponse.redirect(welcomeUrl);
-      redirectRes.cookies.delete("ashabi_welcomed");
-      return redirectRes;
+      const intended =
+        pathname === "/" && searchParams.get("explore") === "1"
+          ? "/?explore=1"
+          : `${pathname}${request.nextUrl.search}`;
+      const safe = isSafeRelativePath(intended);
+      welcomeUrl.search = safe ? `?next=${encodeURIComponent(safe)}` : "";
+      return NextResponse.redirect(welcomeUrl);
     }
   }
 
-  let response = NextResponse.next({ request });
-  response.cookies.delete("ashabi_welcomed");
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) return response;
-
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        );
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  await supabase.auth.getUser().catch(() => null);
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
   ],
 };

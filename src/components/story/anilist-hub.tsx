@@ -6,15 +6,19 @@ import Link from "next/link";
 import { Clapperboard, Search, X } from "lucide-react";
 import {
   ANILIST_GENRES,
+  toAniListCard,
+  type AniListCard,
   type AniListCategory,
-  type AniListHomeFeed,
-  type AniListMedia,
   type AniListTrailer,
 } from "@/lib/anilist";
 import { searchAniListFromBrowser } from "@/lib/anilist-browser";
 
 interface Props {
-  feed: AniListHomeFeed;
+  feed: {
+    manhwa: AniListCard[];
+    manga: AniListCard[];
+    anime: AniListCard[];
+  };
 }
 
 const TABS: {
@@ -31,7 +35,7 @@ export function AniListHub({ feed }: Props) {
   const [selectedGenre, setSelectedGenre] = useState<string>("All");
   const [searchInput, setSearchInput] = useState<string>("");
   const [submittedSearch, setSubmittedSearch] = useState<string>("");
-  const [remoteResults, setRemoteResults] = useState<AniListMedia[] | null>(
+  const [remoteResults, setRemoteResults] = useState<AniListCard[] | null>(
     null,
   );
   const [loading, setLoading] = useState<boolean>(false);
@@ -40,7 +44,7 @@ export function AniListHub({ feed }: Props) {
     trailer: AniListTrailer;
   } | null>(null);
 
-  const baseItemsForTab: AniListMedia[] = useMemo(() => {
+  const baseItemsForTab: AniListCard[] = useMemo(() => {
     if (activeTab === "MANHWA") return feed.manhwa;
     if (activeTab === "MANGA") return feed.manga;
     return feed.anime;
@@ -66,7 +70,7 @@ export function AniListHub({ feed }: Props) {
           controller.signal,
         );
         if (!cancelled) {
-          setRemoteResults(results);
+          setRemoteResults(results.map((item) => toAniListCard(item)));
         }
       } catch {
         if (!cancelled) {
@@ -228,7 +232,7 @@ export function AniListHub({ feed }: Props) {
       {/* Clean WEBTOON / Comic Republic Style Poster Grid */}
       {displayedItems.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 sm:gap-6">
-          {displayedItems.slice(0, 12).map((item) => (
+          {displayedItems.slice(0, 12).map((item, index) => (
             <div key={item.id} className="group flex flex-col gap-3">
               <div className="neu-card relative aspect-[2/3] w-full rounded-[20px] overflow-hidden">
                 <Link
@@ -239,6 +243,7 @@ export function AniListHub({ feed }: Props) {
                     src={item.coverImage}
                     alt={item.title}
                     fill
+                    priority={index < 4}
                     sizes="(max-width:640px) 46vw, (max-width:1024px) 24vw, 16vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />

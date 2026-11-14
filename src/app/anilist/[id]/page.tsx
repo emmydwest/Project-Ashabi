@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  BookOpen,
   Layers,
   Play,
   ShieldCheck,
@@ -12,11 +11,23 @@ import {
 import { SafeImage as Image } from "@/components/ui/safe-image";
 import { LiveAniListImage } from "@/components/story/live-anilist-image";
 import { SeriesChaptersBrowser } from "@/components/reader/series-chapters-browser";
-import { getAniListMediaById } from "@/lib/anilist";
-import { getMangaDexChaptersForTitle } from "@/lib/mangadex";
+import { LiveAniListSeries } from "@/components/story/live-anilist-series";
+import {
+  anilistCoverSize,
+  getAniListMediaById,
+} from "@/lib/anilist";
+import { allSnapshotMedia } from "@/lib/anilist-snapshot";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+export const dynamic = "force-static";
+export const revalidate = false;
+export const dynamicParams = true;
+
+export function generateStaticParams() {
+  return allSnapshotMedia().map((item) => ({ id: String(item.id) }));
 }
 
 export async function generateMetadata({
@@ -59,24 +70,13 @@ export default async function AniListSeriesPage({ params }: PageProps) {
 
   const media = await getAniListMediaById(numericId);
   if (!media) {
-    notFound();
+    return <LiveAniListSeries mediaId={numericId} />;
   }
 
-  const { chapters, availableLanguages, defaultLanguage } =
-    await getMangaDexChaptersForTitle(
-      media.title,
-      media.nativeTitle,
-      media.chapters,
-    );
-
-  const defaultLangChapters = chapters.filter(
-    (c) => c.language === defaultLanguage,
-  );
-  const firstChapter = defaultLangChapters[0] ?? chapters[0];
   const isFinished = media.status.toUpperCase().includes("FINISH");
   const statusBannerText = isFinished
-    ? `COMPLETED · All ${defaultLangChapters.length} Chapters Complete`
-    : `ONGOING (${media.status}) · All ${defaultLangChapters.length} Released Chapters Available`;
+    ? `COMPLETED${media.chapters ? ` · ${media.chapters} Chapters` : ""}`
+    : `ONGOING (${media.status})${media.chapters ? ` · ${media.chapters} Chapters` : ""}`;
 
   return (
     <main
@@ -96,7 +96,8 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           <span>Back to {media.category} Hub</span>
         </Link>
         <span className="text-xs text-[var(--text-muted)] truncate">
-          {media.category} · {availableLanguages.length} Language(s) Available
+          {media.category}
+          {media.chapters ? ` · ${media.chapters} Chapters` : ""}
         </span>
       </nav>
 
@@ -123,7 +124,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
             <div className="relative w-52 sm:w-64 aspect-[2/3] rounded-[22px] overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
               <LiveAniListImage
                 mediaId={media.id}
-                src={media.coverImage}
+                src={anilistCoverSize(media.coverImage, "large")}
                 alt={media.title}
                 fill
                 priority
@@ -148,10 +149,11 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--ivory)]">
                 {statusBannerText}
               </span>
-              <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--gold-bright)]">
-                {availableLanguages.length} Languages ·{" "}
-                {defaultLangChapters.length} Chapters / Language
-              </span>
+              {media.chapters ? (
+                <span className="neu-pill px-3.5 py-1 rounded-full text-xs font-semibold text-[var(--gold-bright)]">
+                  {media.chapters} Chapters
+                </span>
+              ) : null}
             </div>
 
             <div>
@@ -199,19 +201,6 @@ export default async function AniListSeriesPage({ params }: PageProps) {
 
             {/* Primary Actions */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              {firstChapter ? (
-                <Link
-                  href={`/anilist/${media.id}/read/${firstChapter.id}`}
-                  className="neu-pill-active inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs sm:text-sm font-extrabold"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>
-                    Read Ch. {firstChapter.chapterNumber} (
-                    {firstChapter.language.toUpperCase()})
-                  </span>
-                </Link>
-              ) : null}
-
               <a
                 href="#playable-chapters"
                 className="neu-pill inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs sm:text-sm font-bold text-[var(--text-strong)]"
@@ -237,10 +226,10 @@ export default async function AniListSeriesPage({ params }: PageProps) {
       {/* Interactive Language & Chapters Browser */}
       <SeriesChaptersBrowser
         seriesId={media.id}
+        seriesTitle={media.title}
+        nativeTitle={media.nativeTitle}
+        expectedChapters={media.chapters}
         seriesStatus={media.status}
-        chapters={chapters}
-        availableLanguages={availableLanguages}
-        defaultLanguage={defaultLanguage}
       />
 
       {/* In-App Video Trailer Section (No External Backlinks) */}
@@ -369,7 +358,7 @@ export default async function AniListSeriesPage({ params }: PageProps) {
               >
                 <div className="neu-card relative aspect-[2/3] w-full rounded-[20px] overflow-hidden">
                   <Image
-                    src={rec.coverImage}
+                    src={anilistCoverSize(rec.coverImage, "medium")}
                     alt={rec.title}
                     fill
                     sizes="220px"

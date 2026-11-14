@@ -61,6 +61,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${manrope.variable} ${cormorant.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://s4.anilist.co" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://s4.anilist.co" />
+      </head>
       <body>
         <a href="#main" className="skip-link">
           Skip to content

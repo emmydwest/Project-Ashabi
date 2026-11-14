@@ -206,6 +206,7 @@ export async function getFeaturedBooks(
           {
             headers: HEADERS,
             next: { revalidate: 3600 },
+            signal: AbortSignal.timeout(5000),
           },
         );
         if (!res.ok) throw new Error(`Gutendex HTTP ${res.status}`);
@@ -295,7 +296,7 @@ export async function browseBookCatalogue(params: {
     }
 
     const startIdx = (page - 1) * BOOKS_PER_PAGE;
-    let pageSlice = filtered.slice(startIdx, startIdx + BOOKS_PER_PAGE);
+    const pageSlice = filtered.slice(startIdx, startIdx + BOOKS_PER_PAGE);
 
     // If the user navigates beyond the curated array (or filters narrow the list on page > 1),
     // generate distinct real Project Gutenberg catalogue entries for that exact page so pages never repeat.
