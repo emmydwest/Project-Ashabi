@@ -15,6 +15,10 @@ export function AccountNav() {
 
   useEffect(() => {
     const supabase = createClient();
+    if (!supabase) {
+      setUser(null);
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -30,7 +34,7 @@ export function AccountNav() {
   }, []);
 
   async function signOut() {
-    await createClient().auth.signOut();
+    await createClient()?.auth.signOut();
     setOpen(false);
     router.push("/");
     router.refresh();

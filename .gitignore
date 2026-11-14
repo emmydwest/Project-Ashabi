@@ -7,4 +7,5 @@ out/
 .env*
 !.env.example
 .npm-cache/
-
+.open-next/
+.wrangler/

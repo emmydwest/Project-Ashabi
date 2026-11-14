@@ -23,6 +23,11 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     setPending(true);
     setNotice("");
     const supabase = createClient();
+    if (!supabase) {
+      setNotice("Accounts aren't available right now.");
+      setPending(false);
+      return;
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: callbackUrl() },
@@ -57,6 +62,11 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
       }
 
       const supabase = createClient();
+      if (!supabase) {
+        setNotice("Accounts aren't available right now.");
+        setPending(false);
+        return;
+      }
       const { data: result, error } = await supabase.auth.signUp({
         email: parsed.data.email,
         password: parsed.data.password,
@@ -89,6 +99,11 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     }
 
     const supabase = createClient();
+    if (!supabase) {
+      setNotice("Accounts aren't available right now.");
+      setPending(false);
+      return;
+    }
     const { error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,

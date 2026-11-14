@@ -7,9 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 export function AuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
+    if (!supabase) {
+      setUnavailable(true);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/signin");
       else setReady(true);
@@ -19,6 +24,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     });
     return () => listener.subscription.unsubscribe();
   }, [router]);
+
+  if (unavailable) {
+    return <main className="route-loading"><p>Accounts aren't available right now.</p></main>;
+  }
 
   if (!ready) {
     return <main className="route-loading"><p>Opening your Ashabi account…</p></main>;

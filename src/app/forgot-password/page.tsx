@@ -15,7 +15,13 @@ export default function ForgotPasswordPage() {
     setStatus("");
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("email") ?? "").trim();
-    const { error } = await createClient().auth.resetPasswordForEmail(email, {
+    const supabase = createClient();
+    if (!supabase) {
+      setStatus("Accounts aren't available right now.");
+      setPending(false);
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {

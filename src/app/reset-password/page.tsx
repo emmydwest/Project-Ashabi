@@ -21,7 +21,13 @@ export default function ResetPasswordPage() {
       setPending(false);
       return;
     }
-    const { error } = await createClient().auth.updateUser({ password });
+    const supabase = createClient();
+    if (!supabase) {
+      setStatus("Accounts aren't available right now.");
+      setPending(false);
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setStatus(error.message);
       setPending(false);

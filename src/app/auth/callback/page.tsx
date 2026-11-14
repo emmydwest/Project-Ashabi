@@ -12,6 +12,10 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     async function finishSignIn() {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Accounts aren't available right now.");
+        return;
+      }
       const code = new URLSearchParams(window.location.search).get("code");
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);

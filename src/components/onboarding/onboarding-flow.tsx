@@ -75,7 +75,13 @@ export function OnboardingFlow() {
     setSaving(true);
     setSaveError("");
     const preferences = shouldSkip ? { genres: [], formats: [], discovery: [] } : { genres, formats, discovery };
-    const { error } = await createClient().auth.updateUser({
+    const supabase = createClient();
+    if (!supabase) {
+      setSaveError("Accounts aren't available right now.");
+      setSaving(false);
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({
       data: { preferences, onboarding_complete: true },
     });
     if (error) {

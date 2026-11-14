@@ -18,7 +18,9 @@ export function ReaderProfile() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => setUser(data.user));
+    const supabase = createClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
   }, []);
 
   if (!user) return <main className="route-loading"><p>Preparing your profile…</p></main>;
@@ -38,7 +40,13 @@ export function ReaderProfile() {
     const data = new FormData(event.currentTarget);
     const display_name = String(data.get("displayName") || name).trim();
     const nextBio = String(data.get("bio") || "").trim();
-    const { data: result, error } = await createClient().auth.updateUser({ data: { display_name, bio: nextBio } });
+    const supabase = createClient();
+    if (!supabase) {
+      setMessage("Accounts aren't available right now.");
+      setSaving(false);
+      return;
+    }
+    const { data: result, error } = await supabase.auth.updateUser({ data: { display_name, bio: nextBio } });
     if (error) setMessage(error.message);
     else {
       setUser(result.user);
@@ -102,7 +110,7 @@ export function ReaderProfile() {
         <aside className="profile-rail">
           <section><div className="profile-rail-heading"><h2>Favorite Genres</h2><Link href="/onboarding">Edit</Link></div><div className="profile-genre-list">{genres.map((genre) => <span key={genre}>{genre}</span>)}</div><blockquote>“Good stories make a brighter tomorrow.”</blockquote></section>
           <section><div className="profile-rail-heading"><h2>Favorite Creators</h2></div><div className="profile-rail-empty"><Icon name="user" size={32} /><p>Follow creators you love and they’ll appear here.</p><Link href="/creators">Meet creators</Link></div></section>
-          <section className="profile-account-card"><h2>Account</h2><p>{user.email}</p><button type="button" onClick={() => createClient().auth.signOut().then(() => { router.push("/"); router.refresh(); })}><Icon name="logout" /> Sign out</button></section>
+          <section className="profile-account-card"><h2>Account</h2><p>{user.email}</p><button type="button" onClick={() => createClient()?.auth.signOut().then(() => { router.push("/"); router.refresh(); })}><Icon name="logout" /> Sign out</button></section>
         </aside>
       </div>
     </main>

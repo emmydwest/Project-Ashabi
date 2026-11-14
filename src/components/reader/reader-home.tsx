@@ -35,7 +35,7 @@ export function ReaderHome() {
     window.addEventListener("ashabi-reader-state-changed", sync);
 
     createClient()
-      .auth.getUser()
+      ?.auth.getUser()
       .then(({ data }) => {
         const user = data.user;
         if (!user) return;
