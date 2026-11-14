@@ -4,6 +4,7 @@
   "name": "ashabi",
   "compatibility_date": "2026-11-14",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -12,7 +13,7 @@
     "NEXT_PUBLIC_SITE_URL": "https://ashabi.cloud"
   },
   "routes": [
-    { "pattern": "ashabi.cloud", "custom_domain": true },
-    { "pattern": "www.ashabi.cloud", "custom_domain": true }
+    { "pattern": "ashabi.cloud/*", "zone_id": "0eed97c107c4c3c5bb2e0622db13e517" },
+    { "pattern": "www.ashabi.cloud/*", "zone_id": "0eed97c107c4c3c5bb2e0622db13e517" }
   ]
 }
