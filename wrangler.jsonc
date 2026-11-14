@@ -9,6 +9,10 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "NEXT_PUBLIC_SITE_URL": "https://ashabi.ashabi.workers.dev"
-  }
+    "NEXT_PUBLIC_SITE_URL": "https://ashabi.cloud"
+  },
+  "routes": [
+    { "pattern": "ashabi.cloud", "custom_domain": true },
+    { "pattern": "www.ashabi.cloud", "custom_domain": true }
+  ]
 }
