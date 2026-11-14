@@ -10,6 +10,7 @@ import {
   Star,
 } from "lucide-react";
 import { SafeImage as Image } from "@/components/ui/safe-image";
+import { LiveAniListImage } from "@/components/story/live-anilist-image";
 import { SeriesChaptersBrowser } from "@/components/reader/series-chapters-browser";
 import { getAniListMediaById } from "@/lib/anilist";
 import { getMangaDexChaptersForTitle } from "@/lib/mangadex";
@@ -102,8 +103,10 @@ export default async function AniListSeriesPage({ params }: PageProps) {
       {/* Hero Stage */}
       <section className="liquid-glass-gold relative rounded-[32px] overflow-hidden">
         <div className="absolute inset-0">
-          <Image
+          <LiveAniListImage
+            mediaId={media.id}
             src={media.bannerImage || media.coverImage}
+            preferBanner
             alt={media.title}
             fill
             priority
@@ -118,7 +121,8 @@ export default async function AniListSeriesPage({ params }: PageProps) {
           {/* Portrait Cover */}
           <div className="lg:col-span-3 flex justify-center lg:justify-start">
             <div className="relative w-52 sm:w-64 aspect-[2/3] rounded-[22px] overflow-hidden border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
-              <Image
+              <LiveAniListImage
+                mediaId={media.id}
                 src={media.coverImage}
                 alt={media.title}
                 fill

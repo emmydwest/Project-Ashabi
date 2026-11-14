@@ -11,6 +11,7 @@ import {
   type AniListMedia,
   type AniListTrailer,
 } from "@/lib/anilist";
+import { searchAniListFromBrowser } from "@/lib/anilist-browser";
 
 interface Props {
   feed: AniListHomeFeed;
@@ -56,18 +57,16 @@ export function AniListHub({ feed }: Props) {
     async function loadFiltered() {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        params.set("category", activeTab);
-        if (selectedGenre !== "All") params.set("genre", selectedGenre);
-        if (submittedSearch) params.set("q", submittedSearch);
-
-        const res = await fetch(`/api/anilist/search?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error("Failed");
-        const data = await res.json();
+        const results = await searchAniListFromBrowser(
+          {
+            category: activeTab,
+            genre: selectedGenre,
+            query: submittedSearch || undefined,
+          },
+          controller.signal,
+        );
         if (!cancelled) {
-          setRemoteResults(data.results ?? []);
+          setRemoteResults(results);
         }
       } catch {
         if (!cancelled) {

@@ -6,6 +6,7 @@ import { SafeImage as Image } from "@/components/ui/safe-image";
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
 import type { AniListMedia } from "@/lib/anilist";
+import { searchAniListFromBrowser } from "@/lib/anilist-browser";
 
 export function HeaderSearch() {
   const router = useRouter();
@@ -36,15 +37,12 @@ export function HeaderSearch() {
     const timer = window.setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/anilist/search?q=${encodeURIComponent(trimmed)}`,
-          { signal: controller.signal },
+        const results = await searchAniListFromBrowser(
+          { query: trimmed },
+          controller.signal,
         );
-        if (res.ok) {
-          const data = await res.json();
-          setResults((data.results ?? []).slice(0, 6));
-          setOpen(true);
-        }
+        setResults(results.slice(0, 6));
+        setOpen(true);
       } catch {
         // Ignore abort errors
       } finally {

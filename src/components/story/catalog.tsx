@@ -11,6 +11,7 @@ import {
   type AniListMedia,
   type AniListTrailer,
 } from "@/lib/anilist";
+import { searchAniListFromBrowser } from "@/lib/anilist-browser";
 import { trackEvent } from "@/lib/analytics";
 
 type DiscoverCategory = "ALL" | AniListCategory | "ORIGINALS";
@@ -68,19 +69,17 @@ export function Catalog({
     async function fetchCatalog() {
       setLoading(true);
       try {
-        const sp = new URLSearchParams();
-        if (urlQuery) sp.set("q", urlQuery);
-        if (validCategory !== "ALL") sp.set("category", validCategory);
-        if (validGenre !== "All") sp.set("genre", validGenre);
-        sp.set("sort", validSort);
-
-        const res = await fetch(`/api/anilist/search?${sp.toString()}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error("Failed");
-        const data = await res.json();
+        const results = await searchAniListFromBrowser(
+          {
+            query: urlQuery || undefined,
+            category: validCategory === "ORIGINALS" ? "ALL" : validCategory,
+            genre: validGenre,
+            sort: validSort,
+          },
+          controller.signal,
+        );
         if (!cancelled) {
-          setItems(data.results ?? []);
+          setItems(results);
         }
       } catch {
         // Keep current items on abort/network error

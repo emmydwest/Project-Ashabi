@@ -94,7 +94,52 @@ export interface AniListHomeFeed {
   source: "live" | "fallback";
 }
 
-const ANILIST_ENDPOINT = "https://graphql.anilist.co";
+export const ANILIST_ENDPOINT = "https://graphql.anilist.co";
+
+export function isCloudflareWorkerRuntime(): boolean {
+  if (typeof window !== "undefined") return false;
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent ?? "" : "";
+  return /Cloudflare-Workers/i.test(ua);
+}
+
+export function isPlaceholderCover(url?: string | null): boolean {
+  if (!url) return true;
+  return url.startsWith("/images/") || url.includes("localhost:");
+}
+
+export async function requestAniList<T = unknown>(
+  query: string,
+  variables?: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await fetch(ANILIST_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+    signal,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`AniList HTTP ${response.status}`);
+  }
+
+  const json = await response.json();
+  if (!json?.data) {
+    const message =
+      json?.errors?.[0]?.message ?? "Empty AniList GraphQL payload";
+    throw new Error(message);
+  }
+
+  return json.data as T;
+}
+
+async function loadAniListSnapshot() {
+  return import("./anilist-snapshot");
+}
 
 export function stripHtml(raw?: string | null): string {
   if (!raw) return "Synopsis arriving soon.";
@@ -191,7 +236,7 @@ function normalizeTrailer(
   return makeYouTubeEnglishSubTrailer(fallbackYtId);
 }
 
-interface RawAniListNode {
+export interface RawAniListNode {
   id: number;
   type?: string | null;
   format?: string | null;
@@ -282,7 +327,7 @@ interface RawAniListNode {
   } | null;
 }
 
-function normalizeNode(
+export function normalizeAniListNode(
   node: RawAniListNode,
   forcedCategory?: AniListCategory,
 ): AniListMedia {
@@ -500,7 +545,7 @@ const CATALOG_SEARCH_QUERY = `
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-function extractCreators(nodes: RawAniListNode[]): AniListCreator[] {
+export function extractCreators(nodes: RawAniListNode[]): AniListCreator[] {
   const seen = new Set<number>();
   const creators: AniListCreator[] = [];
 
@@ -534,7 +579,7 @@ function extractCreators(nodes: RawAniListNode[]): AniListCreator[] {
   return creators;
 }
 
-function buildHomeFeed(
+export function buildHomeFeed(
   manhwa: AniListMedia[],
   manga: AniListMedia[],
   anime: AniListMedia[],
@@ -600,59 +645,55 @@ function buildHomeFeed(
 }
 
 export async function getAniListHomeFeed(): Promise<AniListHomeFeed> {
-  try {
-    const response = await fetch(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ query: HOME_FEED_QUERY }),
-      next: { revalidate: 3600 },
-    });
+  if (!isCloudflareWorkerRuntime()) {
+    try {
+      const data = await requestAniList<{
+        manhwa?: { media?: RawAniListNode[] };
+        manga?: { media?: RawAniListNode[] };
+        anime?: { media?: RawAniListNode[] };
+        leaderboard?: { media?: RawAniListNode[] };
+      }>(HOME_FEED_QUERY);
 
-    if (!response.ok) {
-      throw new Error(`AniList HTTP ${response.status}`);
+      const rawManhwa: RawAniListNode[] = data.manhwa?.media ?? [];
+      const rawManga: RawAniListNode[] = data.manga?.media ?? [];
+      const rawAnime: RawAniListNode[] = data.anime?.media ?? [];
+      const rawLeaderboard: RawAniListNode[] = data.leaderboard?.media ?? [];
+
+      const manhwa = rawManhwa.map((node) => normalizeAniListNode(node, "MANHWA"));
+      const manga = rawManga.map((node) => normalizeAniListNode(node, "MANGA"));
+      const anime = rawAnime.map((node) => normalizeAniListNode(node, "ANIME"));
+      const leaderboard = rawLeaderboard.map((node) => normalizeAniListNode(node));
+
+      if (manhwa.length > 0 || manga.length > 0 || anime.length > 0) {
+        const topCreators = extractCreators([
+          ...rawManhwa.slice(0, 4),
+          ...rawManga.slice(0, 4),
+          ...rawAnime.slice(0, 2),
+        ]);
+
+        return buildHomeFeed(
+          manhwa,
+          manga,
+          anime,
+          leaderboard,
+          topCreators,
+          "live",
+        );
+      }
+    } catch {
+      // AniList is unreachable from this runtime (or returned an empty page).
     }
-
-    const json = await response.json();
-    const data = json?.data;
-
-    if (!data) {
-      throw new Error("Empty AniList GraphQL payload");
-    }
-
-    const rawManhwa: RawAniListNode[] = data.manhwa?.media ?? [];
-    const rawManga: RawAniListNode[] = data.manga?.media ?? [];
-    const rawAnime: RawAniListNode[] = data.anime?.media ?? [];
-    const rawLeaderboard: RawAniListNode[] = data.leaderboard?.media ?? [];
-
-    const manhwa = rawManhwa.map((node) => normalizeNode(node, "MANHWA"));
-    const manga = rawManga.map((node) => normalizeNode(node, "MANGA"));
-    const anime = rawAnime.map((node) => normalizeNode(node, "ANIME"));
-    const leaderboard = rawLeaderboard.map((node) => normalizeNode(node));
-
-    if (manhwa.length === 0 && manga.length === 0 && anime.length === 0) {
-      return FALLBACK_HOME_FEED;
-    }
-
-    const topCreators = extractCreators([
-      ...rawManhwa.slice(0, 4),
-      ...rawManga.slice(0, 4),
-      ...rawAnime.slice(0, 2),
-    ]);
-
-    return buildHomeFeed(
-      manhwa,
-      manga,
-      anime,
-      leaderboard,
-      topCreators,
-      "live",
-    );
-  } catch {
-    return FALLBACK_HOME_FEED;
   }
+
+  try {
+    const snapshot = await loadAniListSnapshot();
+    const feed = snapshot.getSnapshotHomeFeed();
+    if (feed) return feed;
+  } catch {
+    // Snapshot missing in this build — use the hard-coded catalogue below.
+  }
+
+  return FALLBACK_HOME_FEED;
 }
 
 export async function searchAniListCatalog(params: {
@@ -661,6 +702,7 @@ export async function searchAniListCatalog(params: {
   genre?: string;
   sort?: "TRENDING" | "POPULARITY" | "SCORE";
   perPage?: number;
+  signal?: AbortSignal;
 }): Promise<AniListMedia[]> {
   const cleanQuery = params.query?.trim() || undefined;
   const cleanGenre =
@@ -689,16 +731,11 @@ export async function searchAniListCatalog(params: {
     sort = ["SEARCH_MATCH", "POPULARITY_DESC"];
   }
 
-  try {
-    const response = await fetch(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        query: CATALOG_SEARCH_QUERY,
-        variables: {
+  if (!isCloudflareWorkerRuntime()) {
+    try {
+      const data = await requestAniList<{ Page?: { media?: RawAniListNode[] } }>(
+        CATALOG_SEARCH_QUERY,
+        {
           search: cleanQuery,
           type,
           countryOfOrigin,
@@ -706,40 +743,80 @@ export async function searchAniListCatalog(params: {
           sort,
           perPage: params.perPage ?? 20,
         },
-      }),
-      next: { revalidate: 900 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`AniList search HTTP ${response.status}`);
+        params.signal,
+      );
+      const rawList: RawAniListNode[] = data?.Page?.media ?? [];
+      const results = rawList.map((node) => normalizeAniListNode(node));
+      if (results.length > 0) return results;
+    } catch {
+      // Fall through to the build-time snapshot or the small local catalogue.
     }
-
-    const json = await response.json();
-    const rawList: RawAniListNode[] = json?.data?.Page?.media ?? [];
-    return rawList.map((node) => normalizeNode(node));
-  } catch {
-    const allFallback = [
-      ...FALLBACK_HOME_FEED.manhwa,
-      ...FALLBACK_HOME_FEED.manga,
-      ...FALLBACK_HOME_FEED.anime,
-    ];
-    return allFallback.filter((item) => {
-      if (category !== "ALL" && item.category !== category) return false;
-      if (cleanGenre && !item.genres.includes(cleanGenre)) return false;
-      if (
-        cleanQuery &&
-        !item.title.toLowerCase().includes(cleanQuery.toLowerCase())
-      ) {
-        return false;
-      }
-      return true;
-    });
   }
+
+  if (typeof window === "undefined") {
+    try {
+      const snapshot = await loadAniListSnapshot();
+      const results = snapshot.searchSnapshotCatalog({
+        query: cleanQuery,
+        category,
+        genre: cleanGenre,
+      });
+      if (results.length > 0) return results;
+    } catch {
+      // ignore
+    }
+  }
+
+  const allFallback = [
+    ...FALLBACK_HOME_FEED.manhwa,
+    ...FALLBACK_HOME_FEED.manga,
+    ...FALLBACK_HOME_FEED.anime,
+  ];
+  return allFallback.filter((item) => {
+    if (category !== "ALL" && item.category !== category) return false;
+    if (cleanGenre && !item.genres.includes(cleanGenre)) return false;
+    if (
+      cleanQuery &&
+      !item.title.toLowerCase().includes(cleanQuery.toLowerCase())
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
+export async function fetchAniListMediaById(
+  id: number,
+  signal?: AbortSignal,
+): Promise<AniListMedia | null> {
+  const data = await requestAniList<{ Media?: RawAniListNode }>(
+    MEDIA_DETAIL_QUERY,
+    { id },
+    signal,
+  );
+  return data?.Media ? normalizeAniListNode(data.Media) : null;
 }
 
 export async function getAniListMediaById(
   id: number,
 ): Promise<AniListMedia | null> {
+  if (!isCloudflareWorkerRuntime()) {
+    try {
+      const live = await fetchAniListMediaById(id);
+      if (live) return live;
+    } catch {
+      // Fall through to snapshot / hard-coded lookup.
+    }
+  }
+
+  try {
+    const snapshot = await loadAniListSnapshot();
+    const fromSnapshot = snapshot.getSnapshotMediaById(id);
+    if (fromSnapshot) return fromSnapshot;
+  } catch {
+    // ignore
+  }
+
   const allFallback = [
     ...FALLBACK_MATURE_CATALOG,
     ...FALLBACK_HOME_FEED.manhwa,
@@ -747,38 +824,12 @@ export async function getAniListMediaById(
     ...FALLBACK_HOME_FEED.anime,
   ];
 
-  try {
-    const response = await fetch(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        query: MEDIA_DETAIL_QUERY,
-        variables: { id },
-      }),
-      next: { revalidate: 3600 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`AniList detail HTTP ${response.status}`);
-    }
-
-    const json = await response.json();
-    const rawMedia = json?.data?.Media as RawAniListNode | undefined;
-    if (rawMedia) {
-      return normalizeNode(rawMedia);
-    }
-  } catch {
-    // Fall through to fallback lookup or synthesis
-  }
-
   const found = allFallback.find((item) => item.id === id);
   if (found) return found;
 
   // Synthesize a valid series record if upstream ever times out on an arbitrary ID
   return {
+
     id,
     category: "MANHWA",
     title: `Featured Graphic Series #${id}`,
@@ -899,7 +950,7 @@ const FALLBACK_ANIME: AniListMedia[] = [
   },
 ];
 
-const FALLBACK_MATURE_CATALOG: AniListMedia[] = [
+export const FALLBACK_MATURE_CATALOG: AniListMedia[] = [
   {
     id: 116671,
     category: "MANHWA",
@@ -1122,7 +1173,7 @@ const FALLBACK_MATURE_CATALOG: AniListMedia[] = [
   },
 ];
 
-const FALLBACK_HOME_FEED = buildHomeFeed(
+export const FALLBACK_HOME_FEED = buildHomeFeed(
   FALLBACK_MANHWA,
   FALLBACK_MANGA,
   FALLBACK_ANIME,
@@ -1183,11 +1234,14 @@ const MATURE_CATALOG_QUERY = `
   }
 `;
 
-export async function getAniListMatureCatalog(params: {
-  query?: string;
-  category?: "ALL" | "MANHWA" | "MANGA";
-  mode?: "ADULT_18" | "DARK_SEINEN";
-}): Promise<AniListMedia[]> {
+export async function searchAniListMatureCatalog(
+  params: {
+    query?: string;
+    category?: "ALL" | "MANHWA" | "MANGA";
+    mode?: "ADULT_18" | "DARK_SEINEN";
+  },
+  signal?: AbortSignal,
+): Promise<AniListMedia[]> {
   const cleanQuery = params.query?.trim() || undefined;
   const countryOfOrigin =
     params.category === "MANHWA"
@@ -1197,36 +1251,42 @@ export async function getAniListMatureCatalog(params: {
         : undefined;
   const isAdult = params.mode !== "DARK_SEINEN";
 
+  const data = await requestAniList<{ Page?: { media?: RawAniListNode[] } }>(
+    MATURE_CATALOG_QUERY,
+    {
+      search: cleanQuery,
+      countryOfOrigin,
+      isAdult,
+      perPage: 24,
+    },
+    signal,
+  );
+  const rawList: RawAniListNode[] = data?.Page?.media ?? [];
+  return rawList.map((node) => normalizeAniListNode(node));
+}
+
+export async function getAniListMatureCatalog(params: {
+  query?: string;
+  category?: "ALL" | "MANHWA" | "MANGA";
+  mode?: "ADULT_18" | "DARK_SEINEN";
+}): Promise<AniListMedia[]> {
+  const cleanQuery = params.query?.trim() || undefined;
+
+  if (!isCloudflareWorkerRuntime()) {
+    try {
+      const results = await searchAniListMatureCatalog(params);
+      if (results.length > 0) return results;
+    } catch {
+      // Fall through to the build-time snapshot.
+    }
+  }
+
   try {
-    const response = await fetch(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        query: MATURE_CATALOG_QUERY,
-        variables: {
-          search: cleanQuery,
-          countryOfOrigin,
-          isAdult,
-          perPage: 24,
-        },
-      }),
-      next: { revalidate: 1800 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`AniList mature HTTP ${response.status}`);
-    }
-
-    const json = await response.json();
-    const rawList: RawAniListNode[] = json?.data?.Page?.media ?? [];
-    if (rawList.length > 0) {
-      return rawList.map((node) => normalizeNode(node));
-    }
+    const snapshot = await loadAniListSnapshot();
+    const results = snapshot.getSnapshotMatureCatalog(params);
+    if (results.length > 0) return results;
   } catch {
-    // Fall through to curated mature fallback catalogue
+    // ignore
   }
 
   return FALLBACK_MATURE_CATALOG.filter((item) => {

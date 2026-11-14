@@ -4,6 +4,25 @@ import { checkRateLimit } from "@/lib/rate-limit";
 const USER_AGENT =
   "ProjectAshabi/1.0 (https://github.com/emmydwest/Project-Ashabi)";
 
+const CACHE_HEADERS = {
+  "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
+  "CDN-Cache-Control": "public, max-age=86400, immutable",
+  "Cloudflare-CDN-Cache-Control": "public, max-age=86400, immutable",
+};
+
+function isAllowedHost(host: string) {
+  return (
+    host.endsWith("mangadex.org") ||
+    host.endsWith("mangadex.network") ||
+    host.endsWith("gutenberg.org") ||
+    host.endsWith("anilist.co")
+  );
+}
+
+function isAniListHost(host: string) {
+  return host === "anilist.co" || host.endsWith(".anilist.co");
+}
+
 export async function GET(request: NextRequest) {
   const clientIp =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
@@ -40,38 +59,46 @@ export async function GET(request: NextRequest) {
   }
 
   const host = parsed.hostname.toLowerCase();
-  const isAllowed =
-    host.endsWith("mangadex.org") ||
-    host.endsWith("mangadex.network") ||
-    host.endsWith("gutenberg.org") ||
-    host.endsWith("anilist.co");
-
-  if (!isAllowed) {
+  if (!isAllowedHost(host)) {
     return new NextResponse("Forbidden host", { status: 403 });
+  }
+
+  // s4.anilist.co is a public CDN, but AniList's WAF blocks Cloudflare
+  // Worker IPs. Send the browser straight to the file instead of proxying.
+  if (isAniListHost(host)) {
+    const redirect = NextResponse.redirect(parsed.toString(), 302);
+    Object.entries(CACHE_HEADERS).forEach(([key, value]) =>
+      redirect.headers.set(key, value),
+    );
+    return redirect;
+  }
+
+  const upstreamHeaders: Record<string, string> = {
+    "User-Agent": USER_AGENT,
+    Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+  };
+  if (host.endsWith("mangadex.org") || host.endsWith("mangadex.network")) {
+    upstreamHeaders.Referer = "https://mangadex.org/";
+    upstreamHeaders.Origin = "https://mangadex.org";
   }
 
   try {
     const upstream = await fetch(parsed.toString(), {
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      },
-      next: { revalidate: 86400 },
+      headers: upstreamHeaders,
+      cache: "no-store",
     });
 
     if (!upstream.ok || !upstream.body) {
-      // Fallback: redirect browser directly to upstream asset with no-referrer
       return NextResponse.redirect(parsed.toString(), 307);
     }
 
-    const contentType =
-      upstream.headers.get("content-type") || "image/jpeg";
+    const contentType = upstream.headers.get("content-type") || "image/jpeg";
 
     return new NextResponse(upstream.body, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
+        ...CACHE_HEADERS,
       },
     });
   } catch {
